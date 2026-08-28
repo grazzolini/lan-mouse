@@ -8,6 +8,16 @@ use lan_mouse_ipc::{DEFAULT_PORT, Position};
 
 use super::ClientObject;
 
+const NO_HOSTNAME_MARKUP: &str =
+    "<span font_style=\"italic\" font_weight=\"light\" foreground=\"darkgrey\">No Hostname</span>";
+
+fn collapsed_title(hostname: Option<String>, port: u32) -> String {
+    match hostname.as_deref() {
+        Some(h) if !h.is_empty() => format!("{h}:{port}"),
+        _ => NO_HOSTNAME_MARKUP.to_string(),
+    }
+}
+
 glib::wrapper! {
     pub struct ClientRow(ObjectSubclass<imp::ClientRow>)
     @extends gtk::ListBoxRow, gtk::Widget, adw::PreferencesRow, adw::ExpanderRow,
@@ -53,13 +63,6 @@ impl ClientRow {
             .sync_create()
             .build();
 
-        // bind hostname to title
-        let title_binding = client_object
-            .bind_property("hostname", self, "title")
-            .transform_to(|_, v: Option<String>| v.or(Some("<span font_style=\"italic\" font_weight=\"light\" foreground=\"darkgrey\">no hostname!</span>".to_string())))
-            .sync_create()
-            .build();
-
         // bind port to port edit field
         let port_binding = client_object
             .bind_property("port", &self.imp().port.get(), "text")
@@ -73,11 +76,29 @@ impl ClientRow {
             .sync_create()
             .build();
 
-        // bind port to subtitle
-        let subtitle_binding = client_object
-            .bind_property("port", self, "subtitle")
-            .sync_create()
-            .build();
+        // collapsed title: "hostname:port" (or markup fallback when hostname is empty)
+        let row_for_hostname = self.clone();
+        let hostname_title_handler =
+            client_object.connect_notify_local(Some("hostname"), move |obj, _| {
+                let hostname: Option<String> = obj.property("hostname");
+                let port: u32 = obj.property("port");
+                row_for_hostname.set_title(&collapsed_title(hostname, port));
+            });
+        let row_for_port = self.clone();
+        let port_title_handler = client_object.connect_notify_local(Some("port"), move |obj, _| {
+            let hostname: Option<String> = obj.property("hostname");
+            let port: u32 = obj.property("port");
+            row_for_port.set_title(&collapsed_title(hostname, port));
+        });
+        self.set_title(&collapsed_title(
+            client_object.property::<Option<String>>("hostname"),
+            client_object.property::<u32>("port"),
+        ));
+        self.set_subtitle("");
+        self.imp()
+            .title_handlers
+            .borrow_mut()
+            .extend([hostname_title_handler, port_title_handler]);
 
         // bind position to selected position
         let position_binding = client_object
@@ -114,15 +135,33 @@ impl ClientRow {
             .sync_create()
             .build();
 
+        // bind clipboard-send to switch state
+        let clipboard_send_state_binding = client_object
+            .bind_property(
+                "clipboard-send",
+                &self.imp().clipboard_send_switch.get(),
+                "state",
+            )
+            .sync_create()
+            .build();
+        let clipboard_send_active_binding = client_object
+            .bind_property(
+                "clipboard-send",
+                &self.imp().clipboard_send_switch.get(),
+                "active",
+            )
+            .sync_create()
+            .build();
+
         bindings.push(active_binding);
         bindings.push(switch_position_binding);
         bindings.push(hostname_binding);
-        bindings.push(title_binding);
         bindings.push(port_binding);
-        bindings.push(subtitle_binding);
         bindings.push(position_binding);
         bindings.push(resolve_binding);
         bindings.push(ip_binding);
+        bindings.push(clipboard_send_state_binding);
+        bindings.push(clipboard_send_active_binding);
 
         // Render the initial collapsed subtitle from whatever
         // peer_commit the ClientObject was created with. Subsequent
@@ -134,6 +173,11 @@ impl ClientRow {
     pub fn unbind(&self) {
         for binding in self.imp().bindings.borrow_mut().drain(..) {
             binding.unbind();
+        }
+        if let Some(client_object) = self.imp().client_object.borrow().as_ref() {
+            for handler in self.imp().title_handlers.borrow_mut().drain(..) {
+                client_object.disconnect(handler);
+            }
         }
     }
 
@@ -157,6 +201,10 @@ impl ClientRow {
         self.imp().set_dns_state(resolved);
     }
 
+    pub fn set_clipboard_send(&self, value: bool) {
+        self.imp().set_clipboard_send(value);
+    }
+
     /// Recompute the collapsed subtitle (Pango markup) based on the
     /// current `peer-commit` property and the local build's commit.
     /// Soft-warn semantics: a missing or mismatched peer commit
@@ -175,12 +223,8 @@ impl ClientRow {
         let local = crate::local_commit_str();
         let markup = match peer.as_deref() {
             None => format!("Peer version: unknown · Ours: {local}"),
-            Some(p) if p == local.as_str() => {
-                format!("Peer version: {p} · matched")
-            }
-            Some(p) => {
-                format!("Peer version: {p} · Ours: {local}")
-            }
+            Some(p) if p == local.as_str() => format!("Peer version: {p} · matched"),
+            Some(p) => format!("Peer version: {p} · Ours: {local}"),
         };
         self.remove_css_class("peer-mismatch");
         self.remove_css_class("peer-match");

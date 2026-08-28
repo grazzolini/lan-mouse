@@ -1,0 +1,57 @@
+# Maintainer: CupricReki
+# Maintainer: feschber
+
+pkgname=lan-mouse-git
+_pkgname=lan-mouse
+pkgver=0.11.0.r37.gf1b96bdcc0
+pkgrel=1
+pkgdesc="Software KVM Switch / mouse & keyboard sharing software for Local Area Networks"
+url="https://github.com/feschber/lan-mouse"
+license=("GPL-3.0-only")
+arch=(any)
+provides=("$_pkgname=${pkgver/\.r*/}")
+conflicts=("$_pkgname")
+source=(
+  "$_pkgname"::"git+https://github.com/grazzolini/$_pkgname.git#commit=f1b96bdcc0294d285bc9050b7e146800a3ef8796"
+  "pr-stack-on-f1b96bd.patch"
+)
+sha256sums=(
+  'SKIP'
+  'ae83a4917f8e8f05d83e61a1f26fd2ea410157be4001d9f1069b6fdaca76f315'
+)
+depends=(libadwaita gtk4 libx11 libxtst glib2 glibc gcc-libs hicolor-icon-theme dbus)
+makedepends=(git cargo rust desktop-file-utils)
+options=('!lto')
+
+prepare() {
+  cd "$_pkgname"
+
+  if ! git apply --reverse --check "$srcdir/pr-stack-on-f1b96bd.patch" >/dev/null 2>&1; then
+    git apply --3way "$srcdir/pr-stack-on-f1b96bd.patch"
+  fi
+
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+  cd "$_pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --all-features
+}
+
+check() {
+  cd "$_pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen --all-features
+}
+
+package() {
+  cd "$_pkgname"
+
+  desktop-file-install -m 644 --dir "$pkgdir/usr/share/applications/" "de.feschber.LanMouse.desktop"
+
+  install -Dm0644 -t "$pkgdir/usr/share/icons/hicolor/scalable/apps" "lan-mouse-gtk/resources/de.feschber.LanMouse.svg"
+  install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$_pkgname"
+  install -Dm0644 -t "$pkgdir/usr/share/licenses/$_pkgname" LICENSE
+}

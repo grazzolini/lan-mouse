@@ -5,11 +5,11 @@ use core_foundation::{
     base::{CFRelease, TCFType, kCFAllocatorDefault},
     date::CFTimeInterval,
     number::{CFBooleanRef, kCFBooleanTrue},
-    runloop::{CFRunLoop, CFRunLoopSource, kCFRunLoopCommonModes},
+    runloop::{CFRunLoop, CFRunLoopSource, CFRunLoopSourceRef, kCFRunLoopCommonModes},
     string::{CFStringCreateWithCString, CFStringRef, kCFStringEncodingUTF8},
 };
 use core_graphics::{
-    base::{CGError, kCGErrorSuccess},
+    base::{CGError, CGFloat, kCGErrorSuccess},
     display::{CGDisplay, CGPoint},
     event::{
         CGEvent, CGEventFlags, CGEventTap, CGEventTapLocation, CGEventTapOptions,
@@ -31,6 +31,7 @@ use std::{
     sync::{Arc, OnceLock},
     task::{Context, Poll, ready},
     thread::{self},
+    time::{Duration, Instant},
 };
 use tokio::sync::{
     Mutex,
@@ -38,12 +39,71 @@ use tokio::sync::{
     oneshot,
 };
 
-#[derive(Debug, Default)]
+const EDGE_OFFSET: f64 = 1.0;
+const BOUNDS_REFRESH_INTERVAL: Duration = Duration::from_millis(250);
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Bounds {
     xmin: f64,
     xmax: f64,
     ymin: f64,
     ymax: f64,
+}
+
+impl Bounds {
+    fn from_rects(rects: impl IntoIterator<Item = (f64, f64, f64, f64)>) -> Option<Self> {
+        let mut bounds = Self {
+            xmin: f64::INFINITY,
+            xmax: f64::NEG_INFINITY,
+            ymin: f64::INFINITY,
+            ymax: f64::NEG_INFINITY,
+        };
+        for (x, y, width, height) in rects {
+            bounds.xmin = bounds.xmin.min(x);
+            bounds.xmax = bounds.xmax.max(x + width);
+            bounds.ymin = bounds.ymin.min(y);
+            bounds.ymax = bounds.ymax.max(y + height);
+        }
+
+        (bounds.xmax > bounds.xmin && bounds.ymax > bounds.ymin).then_some(bounds)
+    }
+
+    fn anchor_at_edge(&self, position: Position, previous: Option<CGPoint>) -> CGPoint {
+        let x = previous.map_or((self.xmin + self.xmax) / 2.0, |pos| pos.x);
+        let y = previous.map_or((self.ymin + self.ymax) / 2.0, |pos| pos.y);
+        let x = x.clamp(self.xmin, self.xmax - EDGE_OFFSET);
+        let y = y.clamp(self.ymin, self.ymax - EDGE_OFFSET);
+
+        match position {
+            Position::Left => CGPoint {
+                x: self.xmin + EDGE_OFFSET,
+                y,
+            },
+            Position::Right => CGPoint {
+                x: self.xmax - EDGE_OFFSET,
+                y,
+            },
+            Position::Top => CGPoint {
+                x,
+                y: self.ymin + EDGE_OFFSET,
+            },
+            Position::Bottom => CGPoint {
+                x,
+                y: self.ymax - EDGE_OFFSET,
+            },
+        }
+    }
+}
+
+impl Default for Bounds {
+    fn default() -> Self {
+        Self {
+            xmin: 0.0,
+            xmax: 0.0,
+            ymin: 0.0,
+            ymax: 0.0,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -56,13 +116,22 @@ struct InputCaptureState {
     enter_position: Option<CGPoint>,
     /// bounds of the input capture area
     bounds: Bounds,
+    /// last time display bounds were refreshed from CoreGraphics
+    last_bounds_refresh: Instant,
     /// current state of modifier keys
     modifier_state: XMods,
 }
 
 #[derive(Debug)]
 enum ProducerEvent {
-    Release,
+    /// `warp_target`, when present, is a screen-space (Quartz) point
+    /// at which to warp the local cursor before showing it. Used to
+    /// preserve cross-axis continuity on release: the visible cursor
+    /// reappears at the host point matching where it visually was on
+    /// the guest, instead of snapping back to the capture-start edge.
+    Release {
+        warp_target: Option<(i32, i32)>,
+    },
     Create(Position),
     Destroy(Position),
     Grab(Position),
@@ -77,6 +146,7 @@ impl InputCaptureState {
             current_pos: None,
             enter_position: None,
             bounds: Bounds::default(),
+            last_bounds_refresh: Instant::now(),
             modifier_state: Default::default(),
         };
         res.update_bounds()?;
@@ -84,6 +154,8 @@ impl InputCaptureState {
     }
 
     fn crossed(&mut self, event: &CGEvent) -> Option<Position> {
+        self.refresh_bounds_if_stale("barrier check");
+
         let location = event.location();
         let relative_x = event.get_double_value_field(EventField::MOUSE_EVENT_DELTA_X);
         let relative_y = event.get_double_value_field(EventField::MOUSE_EVENT_DELTA_Y);
@@ -101,34 +173,68 @@ impl InputCaptureState {
         None
     }
 
-    // Get the max bounds of all displays
-    fn update_bounds(&mut self) -> Result<(), MacosCaptureCreationError> {
+    fn active_display_bounds() -> Result<Option<Bounds>, MacosCaptureCreationError> {
         let active_ids =
             CGDisplay::active_displays().map_err(MacosCaptureCreationError::ActiveDisplays)?;
-        active_ids.iter().for_each(|d| {
-            let bounds = CGDisplay::new(*d).bounds();
-            self.bounds.xmin = self.bounds.xmin.min(bounds.origin.x);
-            self.bounds.xmax = self.bounds.xmax.max(bounds.origin.x + bounds.size.width);
-            self.bounds.ymin = self.bounds.ymin.min(bounds.origin.y);
-            self.bounds.ymax = self.bounds.ymax.max(bounds.origin.y + bounds.size.height);
-        });
+        Ok(Bounds::from_rects(active_ids.into_iter().map(|id| {
+            let bounds = CGDisplay::new(id).bounds();
+            (
+                bounds.origin.x,
+                bounds.origin.y,
+                bounds.size.width,
+                bounds.size.height,
+            )
+        })))
+    }
+
+    // Get the union bounds of all displays.
+    fn update_bounds(&mut self) -> Result<bool, MacosCaptureCreationError> {
+        let previous = self.bounds;
+        let refreshed_at = Instant::now();
+        let active_bounds = Self::active_display_bounds();
+        self.last_bounds_refresh = refreshed_at;
+
+        if let Some(bounds) = active_bounds? {
+            self.bounds = bounds;
+        } else {
+            log::warn!("no active display bounds reported; keeping previous bounds");
+        }
 
         log::debug!("Updated displays bounds: {0:?}", self.bounds);
-        Ok(())
+        Ok(self.bounds != previous)
+    }
+
+    fn refresh_bounds_if_stale(&mut self, reason: &str) -> bool {
+        if self.last_bounds_refresh.elapsed() < BOUNDS_REFRESH_INTERVAL {
+            return false;
+        }
+
+        match self.update_bounds() {
+            Ok(changed) => {
+                if changed {
+                    log::info!(
+                        "display bounds refreshed during {reason}: {:?}",
+                        self.bounds
+                    );
+                }
+                changed
+            }
+            Err(e) => {
+                log::warn!("failed to refresh display bounds during {reason}: {e}");
+                false
+            }
+        }
+    }
+
+    fn reanchor_capture_cursor(&mut self, position: Position) -> Result<(), CaptureError> {
+        let previous = self.enter_position;
+        self.enter_position = Some(self.bounds.anchor_at_edge(position, previous));
+        self.reset_cursor()
     }
 
     /// start the input capture by
     fn start_capture(&mut self, event: &CGEvent, position: Position) -> Result<(), CaptureError> {
-        let mut location = event.location();
-        let edge_offset = 1.0;
-        // move cursor location to display bounds
-        match position {
-            Position::Left => location.x = self.bounds.xmin + edge_offset,
-            Position::Right => location.x = self.bounds.xmax - edge_offset,
-            Position::Top => location.y = self.bounds.ymin + edge_offset,
-            Position::Bottom => location.y = self.bounds.ymax - edge_offset,
-        };
-        self.enter_position = Some(location);
+        self.enter_position = Some(self.bounds.anchor_at_edge(position, Some(event.location())));
         self.reset_cursor()
     }
 
@@ -153,8 +259,26 @@ impl InputCaptureState {
     ) -> Result<(), CaptureError> {
         log::debug!("handling event: {producer_event:?}");
         match producer_event {
-            ProducerEvent::Release => {
+            ProducerEvent::Release { warp_target } => {
+                log::info!(
+                    "[release-warp] handle_producer_event Release: current_pos={:?} warp_target={warp_target:?}",
+                    self.current_pos
+                );
                 if self.current_pos.is_some() {
+                    // Warp BEFORE clearing current_pos so the
+                    // event-tap callback can't see Some(pos) and
+                    // re-snap the cursor to the entry edge before we
+                    // make it visible again. Then show_cursor() reveals
+                    // it at the warped point.
+                    if let Some((x, y)) = warp_target {
+                        log::info!("[release-warp] warping local cursor to ({x}, {y})");
+                        if let Err(e) = CGDisplay::warp_mouse_cursor_position(CGPoint {
+                            x: x as CGFloat,
+                            y: y as CGFloat,
+                        }) {
+                            log::warn!("[release-warp] warp_mouse_cursor_position failed: {e:?}");
+                        }
+                    }
                     self.show_cursor()?;
                     self.current_pos = None;
                 }
@@ -186,6 +310,25 @@ impl InputCaptureState {
                     self.show_cursor()?;
                     self.current_pos = None;
                 }
+                // Distinguish AX revocation from a recoverable cause
+                // (secure-input mode while typing in a password field
+                // also fires TapDisabledByUserInput). If AX is gone,
+                // the tap can't be recreated and the GUI's polling
+                // watcher may not flip for a while when the user
+                // *removed* the entry from System Settings → Privacy
+                // & Security → Accessibility (vs just toggling it
+                // off — removal can leave AXIsProcessTrusted reporting
+                // cached-true in already-running processes). Exit
+                // the daemon process directly: the GUI will see its
+                // IPC connection drop and trigger its own
+                // quit-with-backstop path. This is the only reliable
+                // way to tear down a wedged HID-level tap quickly.
+                if !unsafe { AXIsProcessTrusted() } {
+                    log::error!(
+                        "CGEventTap disabled and Accessibility no longer granted — daemon exiting"
+                    );
+                    std::process::exit(0);
+                }
                 return Err(CaptureError::EventTapDisabled);
             }
             ProducerEvent::DisplayReconfigured => {
@@ -196,10 +339,18 @@ impl InputCaptureState {
                 // cursor-warp on capture-start use the current
                 // geometry instead of whatever was true at process
                 // start.
-                if let Err(e) = self.update_bounds() {
-                    log::warn!("failed to refresh display bounds: {e}");
-                } else {
-                    log::info!("display reconfigured: {:?}", self.bounds);
+                match self.update_bounds() {
+                    Err(e) => log::warn!("failed to refresh display bounds: {e}"),
+                    Ok(_) => {
+                        log::info!("display reconfigured: {:?}", self.bounds);
+                        if let Some(pos) = self.current_pos {
+                            if let Err(e) = self.reanchor_capture_cursor(pos) {
+                                log::warn!(
+                                    "failed to reanchor captured cursor after display change: {e}"
+                                );
+                            }
+                        }
+                    }
                 }
             }
         };
@@ -357,11 +508,41 @@ fn get_events(
             })))
         }
         CGEventType::ScrollWheel => {
+            // Emit scroll deltas in the *classic* mouse-wheel convention
+            // (the historical baseline that predates natural scrolling)
+            // regardless of the user's macOS Natural Scrolling
+            // preference. Rationale:
+            //
+            //   1. Classic was the canonical scroll convention when
+            //      the scroll wheel was invented; using it as the
+            //      wire format keeps Lan Mouse predictable for any
+            //      receiver, including non-natural-aware peers.
+            //   2. Receivers opt into natural-feel via their own
+            //      `natural_scroll` config, mirroring how libinput's
+            //      natural_scroll knob works for physical input.
+            //   3. macOS Natural Scrolling pre-flips POINT_DELTA at
+            //      the OS layer; CGEventTap at Session placement sees
+            //      events after that flip. So:
+            //        Natural ON: POINT_DELTA already flipped (away
+            //          from classic) → re-flip back to classic by
+            //          NOT flipping in our code (sign = +1).
+            //        Natural OFF: POINT_DELTA already in classic →
+            //          flip once to invert away from raw and… wait,
+            //          actually we want to land on classic regardless.
+            //          With Natural OFF the OS gives us "raw classic"
+            //          *as-the-mac-sees-it*; our peers' wl_pointer
+            //          treats positive Y as "document moves down on
+            //          screen" (natural-feel). To present classic
+            //          feel on the wire we negate (sign = -1).
+            //
+            // Net result: wire is consistently classic-feel regardless
+            // of the Mac's preference. Receivers can re-invert.
+            let sign: i64 = if natural_scrolling_enabled() { 1 } else { -1 };
             if ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_IS_CONTINUOUS) != 0 {
-                let v =
-                    ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_POINT_DELTA_AXIS_1);
-                let h =
-                    ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_POINT_DELTA_AXIS_2);
+                let v = sign
+                    * ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_POINT_DELTA_AXIS_1);
+                let h = sign
+                    * ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_POINT_DELTA_AXIS_2);
                 if v != 0 {
                     result.push(CaptureEvent::Input(Event::Pointer(PointerEvent::Axis {
                         time: 0,
@@ -378,10 +559,23 @@ fn get_events(
                 }
             } else {
                 // line based scrolling
-                const LINES_PER_STEP: i32 = 3;
+                //
+                // macOS already amplifies SCROLL_WHEEL_EVENT_DELTA based
+                // on wheel velocity — a slow notch on a notched wheel
+                // (e.g. MX Master 4) reports DELTA=1, a fast flick
+                // reports DELTA=10+ per event. The wl_pointer v120
+                // protocol expects one physical wheel click = 120
+                // units, so map one macOS DELTA line to one full v120
+                // tick. (The previous 3-lines-per-step ratio caused
+                // single notches to truncate to discrete=0 on the
+                // receiver, leaving Slack/Alacritty unscrollable until
+                // 3+ notches accumulated.)
+                const LINES_PER_STEP: i32 = 1;
                 const V120_STEPS_PER_LINE: i32 = 120 / LINES_PER_STEP;
-                let v = ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_1);
-                let h = ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_2);
+                let v =
+                    sign * ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_1);
+                let h =
+                    sign * ev.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_2);
                 if v != 0 {
                     result.push(CaptureEvent::Input(Event::Pointer(
                         PointerEvent::AxisDiscrete120 {
@@ -513,27 +707,53 @@ fn create_event_tap<'a>(
                     | CGEventType::RightMouseDragged
                     | CGEventType::OtherMouseDragged
             ) {
-                state.reset_cursor().unwrap_or_else(|e| log::warn!("{e}"));
+                if state.refresh_bounds_if_stale("captured pointer motion") {
+                    state
+                        .reanchor_capture_cursor(current_pos)
+                        .unwrap_or_else(|e| log::warn!("{e}"));
+                } else {
+                    state.reset_cursor().unwrap_or_else(|e| log::warn!("{e}"));
+                }
             }
         } else if matches!(event_type, CGEventType::MouseMoved) {
             // Did we cross a barrier?
             if let Some(new_pos) = state.crossed(cg_ev) {
-                capture_position = Some(new_pos);
-                state
-                    .start_capture(cg_ev, new_pos)
-                    .unwrap_or_else(|e| log::warn!("{e}"));
-                res_events.push(CaptureEvent::Begin);
-                notify_tx
-                    .blocking_send(ProducerEvent::Grab(new_pos))
-                    .expect("Failed to send notification");
+                // About to commit the cross — final gate: skip if the
+                // host is locked, since the lock screen consumes
+                // keyboard before our tap sees it and allowing the
+                // cursor to leave would produce a mouse-only-on-peer
+                // half-broken state. Polling CGSession only at this
+                // commit point (rather than every MouseMoved) keeps
+                // the per-event cost zero — `is_screen_locked()` is
+                // an XPC to WindowServer (~10–50µs); a typical user
+                // crosses a wall a few times per minute.
+                if is_screen_locked() {
+                    log::info!("host screen locked; suppressing cross to {new_pos:?}");
+                } else {
+                    capture_position = Some(new_pos);
+                    // Snapshot the cursor's screen-space position at the
+                    // instant of crossing — before start_capture's
+                    // reset_cursor() snaps it to the edge. The peer uses
+                    // this for the visually-corresponding warp on Enter
+                    // so the cursor doesn't jump to the entry-edge midpoint.
+                    let cross_loc = cg_ev.location();
+                    let cursor = Some((cross_loc.x as i32, cross_loc.y as i32));
+                    state
+                        .start_capture(cg_ev, new_pos)
+                        .unwrap_or_else(|e| log::warn!("{e}"));
+                    res_events.push(CaptureEvent::Begin { cursor });
+                    notify_tx
+                        .blocking_send(ProducerEvent::Grab(new_pos))
+                        .expect("Failed to send notification");
+                }
             }
         }
 
         if let Some(pos) = capture_position {
-            res_events.iter().for_each(|e| {
+            res_events.into_iter().for_each(|e| {
                 // error must be ignored, since the event channel
                 // may already be closed when the InputCapture instance is dropped.
-                let _ = event_tx.blocking_send((pos, *e));
+                let _ = event_tx.blocking_send((pos, e));
             });
             // Returning Drop should stop the event from being processed
             // but core fundation still returns the event
@@ -600,13 +820,46 @@ fn event_tap_thread(
     // callback runs on this thread's CFRunLoop. Box-leak the sender
     // so the C side has a stable user_info pointer; reclaim it after
     // the run loop exits.
-    let display_user_info = Box::into_raw(Box::new(display_notify_tx)) as *mut c_void;
+    let display_user_info = Box::into_raw(Box::new(display_notify_tx.clone())) as *mut c_void;
     unsafe {
         CGDisplayRegisterReconfigurationCallback(
             display_reconfiguration_callback,
             display_user_info,
         );
     }
+
+    // Also subscribe to system-power events so we recover from
+    // sleep/wake, where the Quartz reconfigure callback may not
+    // fire (or fires before our run loop is processing again, e.g.
+    // clamshell-disconnect → lid-open). On wake we send the same
+    // DisplayReconfigured event the existing handler consumes, so
+    // bounds get refreshed for free.
+    let mut power_notifier_object: u32 = 0;
+    let mut power_notification_port: *mut c_void = std::ptr::null_mut();
+    let power_ctx = Box::into_raw(Box::new(PowerCtx {
+        sender: display_notify_tx,
+        root_port: 0,
+    }));
+    let power_root_port = unsafe {
+        let port = IORegisterForSystemPower(
+            power_ctx as *mut c_void,
+            &mut power_notification_port,
+            power_callback,
+            &mut power_notifier_object,
+        );
+        // Stash the root port for the callback's IOAllowPowerChange
+        // ack — we couldn't know it at Box-construction time because
+        // it's the registration's return value.
+        (*power_ctx).root_port = port;
+        if !power_notification_port.is_null() {
+            let src_ref = IONotificationPortGetRunLoopSource(power_notification_port);
+            if !src_ref.is_null() {
+                let src = CFRunLoopSource::wrap_under_get_rule(src_ref);
+                CFRunLoop::get_current().add_source(&src, kCFRunLoopCommonModes);
+            }
+        }
+        port
+    };
 
     log::debug!("running CFRunLoop...");
     CFRunLoop::run_current();
@@ -619,9 +872,108 @@ fn event_tap_thread(
         drop(Box::from_raw(
             display_user_info as *mut Sender<ProducerEvent>,
         ));
+
+        if power_notifier_object != 0 {
+            let _ = IODeregisterForSystemPower(&mut power_notifier_object);
+        }
+        if !power_notification_port.is_null() {
+            IONotificationPortDestroy(power_notification_port);
+        }
+        let _ = power_root_port;
+        drop(Box::from_raw(power_ctx));
     }
 
     let _ = exit.send(());
+}
+
+/// Query whether the host's screen is locked. Asks the WindowServer
+/// for the current login session dictionary and looks up the
+/// `CGSSessionScreenIsLocked` key. The key is `kCFBooleanTrue` when
+/// locked; on Sequoia 15+ it's typically absent when unlocked rather
+/// than `kCFBooleanFalse`, so missing-or-nil is treated as unlocked.
+/// Costs ~10–50µs per call (an XPC round-trip to WindowServer);
+/// called from the event tap callback only on `MouseMoved`, so the
+/// amortized cost is negligible (<2% CPU at typical mouse rates).
+fn is_screen_locked() -> bool {
+    let key = unsafe {
+        let cstr = CString::new("CGSSessionScreenIsLocked").unwrap();
+        CFStringCreateWithCString(
+            kCFAllocatorDefault,
+            cstr.as_ptr() as *const c_char,
+            kCFStringEncodingUTF8,
+        )
+    };
+    let dict = unsafe { CGSessionCopyCurrentDictionary() };
+    if dict.is_null() {
+        unsafe { CFRelease(key as *const c_void) };
+        return false;
+    }
+    let value = unsafe { CFDictionaryGetValue(dict, key as *const c_void) };
+    let locked = !value.is_null() && unsafe { CFBooleanGetValue(value as CFBooleanRef) };
+    unsafe {
+        CFRelease(dict as *const c_void);
+        CFRelease(key as *const c_void);
+    }
+    locked
+}
+
+/// Refcon for the IOKit system-power callback. Bundles the channel
+/// sender (so the callback can post `DisplayReconfigured` on wake)
+/// and the `io_connect_t` root port (so the callback can ack
+/// sleep-related messages with `IOAllowPowerChange`). Built on the
+/// event-tap thread, used only by the callback on the same thread —
+/// never crosses thread boundaries, so no Send/Sync needed.
+struct PowerCtx {
+    sender: Sender<ProducerEvent>,
+    root_port: u32,
+}
+
+/// IOKit system-power callback. Fires for every power-management
+/// transition (CanSleep, WillSleep, WillPowerOn, HasPoweredOn).
+/// We only care about `kIOMessageSystemHasPoweredOn` (post-wake);
+/// for the sleep-pending messages we just ack so the kernel doesn't
+/// hold the system in its "waiting for clients" state for the full
+/// 30-second timeout.
+extern "C" fn power_callback(
+    refcon: *mut c_void,
+    _service: u32,
+    msg_type: u32,
+    msg_arg: *mut c_void,
+) {
+    const K_IO_MESSAGE_CAN_SYSTEM_SLEEP: u32 = 0xE000_0270;
+    const K_IO_MESSAGE_SYSTEM_WILL_SLEEP: u32 = 0xE000_0280;
+    const K_IO_MESSAGE_SYSTEM_HAS_POWERED_ON: u32 = 0xE000_0300;
+
+    if refcon.is_null() {
+        return;
+    }
+    // SAFETY: `refcon` is `Box::into_raw(Box::new(PowerCtx))` owned by
+    // `event_tap_thread`; valid until the run loop exits and the box
+    // is reclaimed. The callback only fires while the run loop runs
+    // on that thread, so the box is live here.
+    let ctx = unsafe { &*(refcon as *const PowerCtx) };
+    match msg_type {
+        K_IO_MESSAGE_CAN_SYSTEM_SLEEP | K_IO_MESSAGE_SYSTEM_WILL_SLEEP => {
+            // Ack so the OS doesn't stall on its 30s default timeout.
+            // `msg_arg` carries the notification ID (an `intptr_t`);
+            // pass it through verbatim.
+            unsafe {
+                IOAllowPowerChange(ctx.root_port, msg_arg as isize);
+            }
+        }
+        K_IO_MESSAGE_SYSTEM_HAS_POWERED_ON => {
+            // Bounce a DisplayReconfigured into the producer so
+            // `update_bounds()` runs. Covers the case where Quartz's
+            // own reconfigure callback didn't fire (or fired during
+            // the sleep window) — e.g. clamshell-disconnect →
+            // lid-open transitions.
+            log::info!("system woke from sleep; refreshing display bounds");
+            if let Err(e) = ctx.sender.blocking_send(ProducerEvent::DisplayReconfigured) {
+                log::warn!("failed to post wake → DisplayReconfigured: {e}");
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Quartz display-reconfiguration callback. Fires twice per change:
@@ -772,17 +1124,66 @@ impl Capture for MacOSInputCapture {
         Ok(())
     }
 
-    async fn release(&mut self) -> Result<(), CaptureError> {
+    async fn release(&mut self, warp_target: Option<(i32, i32)>) -> Result<(), CaptureError> {
+        log::info!("[release-warp] macOS backend release(warp_target={warp_target:?})");
         let notify_tx = self.notify_tx.clone();
         tokio::task::spawn_local(async move {
             log::debug!("notifying Release");
-            let _ = notify_tx.send(ProducerEvent::Release).await;
+            let _ = notify_tx.send(ProducerEvent::Release { warp_target }).await;
         });
         Ok(())
     }
 
     async fn terminate(&mut self) -> Result<(), CaptureError> {
         Ok(())
+    }
+
+    fn display_bounds(&self) -> Option<(u32, u32)> {
+        // Mirror the InputEmulation-side implementation: the union of
+        // every active display's rectangle, in points (which match
+        // the units used by CGEvent.location() so the
+        // MotionAbsolute math stays internally consistent).
+        let displays = CGDisplay::active_displays().ok()?;
+        let mut xmin = f64::INFINITY;
+        let mut xmax = f64::NEG_INFINITY;
+        let mut ymin = f64::INFINITY;
+        let mut ymax = f64::NEG_INFINITY;
+        for id in displays {
+            let bounds = CGDisplay::new(id).bounds();
+            xmin = xmin.min(bounds.origin.x);
+            xmax = xmax.max(bounds.origin.x + bounds.size.width);
+            ymin = ymin.min(bounds.origin.y);
+            ymax = ymax.max(bounds.origin.y + bounds.size.height);
+        }
+        if xmax <= xmin || ymax <= ymin {
+            return None;
+        }
+        Some(((xmax - xmin) as u32, (ymax - ymin) as u32))
+    }
+
+    fn display_origin(&self) -> (i32, i32) {
+        // Top-left of the union of all active displays. Matters when
+        // a secondary monitor is positioned LEFT of (or ABOVE) the
+        // primary — the global pointer-coordinate system is anchored
+        // at the primary's top-left, so a left-attached external
+        // gives cursor x ∈ [-w, 0). Without this offset,
+        // host_normalized_cursor / peer_warp_target's clamp(0, 1)
+        // silently maps every point on the external to "left edge"
+        // and the receiver warps to the wrong column.
+        let Ok(displays) = CGDisplay::active_displays() else {
+            return (0, 0);
+        };
+        let mut xmin = f64::INFINITY;
+        let mut ymin = f64::INFINITY;
+        for id in displays {
+            let bounds = CGDisplay::new(id).bounds();
+            xmin = xmin.min(bounds.origin.x);
+            ymin = ymin.min(bounds.origin.y);
+        }
+        if xmin.is_infinite() || ymin.is_infinite() {
+            return (0, 0);
+        }
+        (xmin as i32, ymin as i32)
     }
 }
 
@@ -797,6 +1198,63 @@ impl Stream for MacOSInputCapture {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn point(x: f64, y: f64) -> CGPoint {
+        CGPoint { x, y }
+    }
+
+    #[test]
+    fn bounds_shrink_when_left_display_removed() {
+        let three_displays = Bounds::from_rects([
+            (-1920.0, 0.0, 1920.0, 1080.0),
+            (0.0, 0.0, 1920.0, 1080.0),
+            (1920.0, 0.0, 1512.0, 982.0),
+        ])
+        .expect("valid display bounds");
+        let remaining_displays =
+            Bounds::from_rects([(0.0, 0.0, 1920.0, 1080.0), (1920.0, 0.0, 1512.0, 982.0)])
+                .expect("valid display bounds");
+
+        assert_eq!(three_displays.xmin, -1920.0);
+        assert_eq!(remaining_displays.xmin, 0.0);
+        assert_eq!(remaining_displays.xmax, 3432.0);
+    }
+
+    #[test]
+    fn bounds_expand_when_left_display_added_back() {
+        let without_left =
+            Bounds::from_rects([(0.0, 0.0, 1920.0, 1080.0), (1920.0, 0.0, 1512.0, 982.0)])
+                .expect("valid display bounds");
+        let with_left = Bounds::from_rects([
+            (-1920.0, 0.0, 1920.0, 1080.0),
+            (0.0, 0.0, 1920.0, 1080.0),
+            (1920.0, 0.0, 1512.0, 982.0),
+        ])
+        .expect("valid display bounds");
+
+        assert_eq!(without_left.xmin, 0.0);
+        assert_eq!(with_left.xmin, -1920.0);
+        assert_eq!(with_left.xmax, 3432.0);
+    }
+
+    #[test]
+    fn reanchored_capture_position_moves_to_new_edge_and_clamps_cross_axis() {
+        let bounds =
+            Bounds::from_rects([(0.0, 0.0, 1920.0, 1080.0)]).expect("valid display bounds");
+
+        let left = bounds.anchor_at_edge(Position::Left, Some(point(-1919.0, 1200.0)));
+        assert_eq!(left.x, 1.0);
+        assert_eq!(left.y, 1079.0);
+
+        let right = bounds.anchor_at_edge(Position::Right, Some(point(10.0, -50.0)));
+        assert_eq!(right.x, 1919.0);
+        assert_eq!(right.y, 0.0);
+    }
+}
+
 type CGSConnectionID = u32;
 
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -808,6 +1266,19 @@ extern "C" {
         value: CFBooleanRef,
     ) -> CGError;
     fn _CGSDefaultConnection() -> CGSConnectionID;
+}
+
+type CFDictionaryRef = *mut c_void;
+
+#[link(name = "CoreGraphics", kind = "framework")]
+extern "C" {
+    fn CGSessionCopyCurrentDictionary() -> CFDictionaryRef;
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+extern "C" {
+    fn CFDictionaryGetValue(dict: CFDictionaryRef, key: *const c_void) -> *const c_void;
+    fn CFBooleanGetValue(boolean: CFBooleanRef) -> bool;
 }
 
 extern "C" {
@@ -836,9 +1307,71 @@ extern "C" {
     ) -> CGError;
 }
 
+#[link(name = "IOKit", kind = "framework")]
+extern "C" {
+    /// Register the calling process for system-power notifications.
+    /// Returns the `io_connect_t` root power port (used later in
+    /// `IOAllowPowerChange` to ack sleep-related messages) and writes
+    /// the notification port + an `io_object_t` notifier through the
+    /// out-pointers. The returned notification port carries a
+    /// CFRunLoopSource we attach to this thread's run loop so the
+    /// callback fires inline with the existing event-tap loop.
+    fn IORegisterForSystemPower(
+        refcon: *mut c_void,
+        port_ref: *mut *mut c_void,
+        callback: extern "C" fn(*mut c_void, u32, u32, *mut c_void),
+        notifier: *mut u32,
+    ) -> u32;
+    fn IODeregisterForSystemPower(notifier: *mut u32) -> i32;
+    fn IONotificationPortGetRunLoopSource(notify: *mut c_void) -> CFRunLoopSourceRef;
+    fn IONotificationPortDestroy(notify: *mut c_void);
+    /// Ack a kIOMessageCanSystemSleep / kIOMessageSystemWillSleep so
+    /// the OS doesn't stall on its 30s default timeout waiting for us.
+    /// Required even when we have no objection — silence is treated as
+    /// "still thinking" by the kernel.
+    fn IOAllowPowerChange(kernel_port: u32, notification_id: isize) -> i32;
+}
+
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
     fn AXIsProcessTrusted() -> bool;
+}
+
+/// Read `com.apple.swipescrolldirection` from the global preferences
+/// domain. Returns `true` when Natural Scrolling is enabled (the
+/// modern macOS default) — the same default macOS uses if the key
+/// is unset. Used to decide whether to invert scroll deltas before
+/// forwarding them to a peer that has its own fixed convention.
+fn natural_scrolling_enabled() -> bool {
+    unsafe {
+        let key_cstr = CString::new("com.apple.swipescrolldirection").unwrap();
+        let key = CFStringCreateWithCString(
+            kCFAllocatorDefault,
+            key_cstr.as_ptr() as *const c_char,
+            kCFStringEncodingUTF8,
+        );
+        if key.is_null() {
+            return true;
+        }
+        let value = CFPreferencesCopyAppValue(key, kCFPreferencesAnyApplication);
+        CFRelease(key as *const c_void);
+        if value.is_null() {
+            // Key absent → modern macOS default is enabled.
+            return true;
+        }
+        // The preference is stored as a CFBoolean; kCFBooleanTrue
+        // and kCFBooleanFalse are singleton instances, so a pointer
+        // compare is correct and sufficient.
+        let is_true = (value as CFBooleanRef) == kCFBooleanTrue;
+        CFRelease(value);
+        is_true
+    }
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+extern "C" {
+    fn CFPreferencesCopyAppValue(key: CFStringRef, application_id: CFStringRef) -> *const c_void;
+    static kCFPreferencesAnyApplication: CFStringRef;
 }
 
 unsafe fn configure_cf_settings() -> Result<(), MacosCaptureCreationError> {

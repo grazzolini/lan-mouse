@@ -101,6 +101,7 @@
               ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
                 libX11
                 libXtst
+                dbus
               ];
             env.RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
           };
