@@ -1,21 +1,22 @@
-use futures::{Stream, StreamExt};
+use futures::{Stream, StreamExt, future::join_all};
 use lan_mouse_ipc::IncomingPeerConfig;
 use lan_mouse_proto::{MAX_CLIPBOARD_SIZE, MAX_EVENT_SIZE, ProtoEvent, decode_clipboard_event};
 use local_channel::mpsc::{Receiver, Sender, channel};
 use rustls::pki_types::CertificateDer;
 use std::{
+    cell::RefCell,
     collections::{HashMap, HashSet, VecDeque},
     net::{IpAddr, SocketAddr},
     rc::Rc,
-    sync::{Arc, Mutex, RwLock},
+    sync::{
+        Arc, Mutex, RwLock,
+        atomic::{AtomicU64, Ordering},
+    },
     time::Duration,
 };
 use thiserror::Error;
+use tokio::task::{JoinHandle, spawn_local};
 use tokio::time::MissedTickBehavior;
-use tokio::{
-    sync::Mutex as AsyncMutex,
-    task::{JoinHandle, spawn_local},
-};
 use webrtc_dtls::{
     config::{ClientAuthType::RequireAnyClientCert, Config, ExtendedMasterSecretType},
     conn::DTLSConn,
@@ -37,16 +38,52 @@ pub enum ListenerCreationError {
 }
 
 type ArcConn = Arc<dyn Conn + Send + Sync>;
-type DynListener = Box<dyn Listener + Send + Sync>;
+type DynListener = Arc<dyn Listener + Send + Sync>;
+type Connections = Rc<RefCell<Vec<RegisteredConnection>>>;
+type Sessions = Rc<RefCell<HashMap<SessionId, AcceptedConnection>>>;
+const CLOSE_TIMEOUT: Duration = Duration::from_secs(1);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct SessionId(u64);
+
+impl SessionId {
+    pub(crate) fn new() -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        Self(NEXT_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
+
+struct RegisteredConnection {
+    addr: SocketAddr,
+    session: SessionId,
+    conn: ArcConn,
+}
+
+struct AcceptedConnection {
+    addr: SocketAddr,
+    conn: ArcConn,
+    read_task: Option<JoinHandle<()>>,
+}
+
+enum ListenerRequest {
+    ChangePort(u16),
+    Terminate,
+}
 
 pub(crate) enum ListenEvent {
     Msg {
         event: ProtoEvent,
         addr: SocketAddr,
+        session: SessionId,
     },
     Accept {
         addr: SocketAddr,
         fingerprint: String,
+        session: SessionId,
+    },
+    Disconnected {
+        addr: SocketAddr,
+        session: SessionId,
     },
     Rejected {
         fingerprint: String,
@@ -57,8 +94,8 @@ pub(crate) struct LanMouseListener {
     listen_rx: Receiver<ListenEvent>,
     listen_tx: Sender<ListenEvent>,
     listen_task: JoinHandle<()>,
-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
-    request_port_change: Sender<u16>,
+    conns: Connections,
+    request_port_change: Sender<ListenerRequest>,
     port_changed: Receiver<Result<u16, ListenerCreationError>>,
 }
 
@@ -68,20 +105,86 @@ type VerifyPeerCertificateFn = Arc<
         + Sync,
 >;
 
-/// One bound DTLS listener and the task that accepts on it. Stored
-/// in a `HashMap<IpAddr, ListenerSlot>` keyed by the local IPv4
-/// address it's bound to so the supervisor can plug/unplug
-/// listeners as interfaces appear/disappear.
+/// Owns every connection accepted on one local binding. Teardown must finish
+/// before the supervisor can bind that address again.
 struct ListenerSlot {
-    /// Background task that calls `listener.accept()` in a loop and
-    /// forwards events into the shared `listen_tx` / `conns`.
-    /// Aborted on `Drop` so dropping the supervisor cleans up.
-    accept_task: JoinHandle<()>,
+    listener: Option<DynListener>,
+    accept_task: Option<JoinHandle<()>>,
+    sessions: Sessions,
+    conns: Connections,
+    listen_tx: Sender<ListenEvent>,
 }
 
+impl ListenerSlot {
+    async fn shutdown(mut self, conns: &Connections, listen_tx: &Sender<ListenEvent>) {
+        let mut accept_task = self.accept_task.take().expect("accept task");
+        accept_task.abort();
+        let _ = (&mut accept_task).await;
+        let sessions: Vec<_> = self.sessions.borrow_mut().drain().collect();
+        // Retire identities before any network await; queued events from these
+        // readers must not release keys belonging to a newer session.
+        for (session, accepted) in &sessions {
+            retire_connection(conns, *session, accepted.addr, listen_tx);
+            if let Some(task) = &accepted.read_task {
+                task.abort();
+            }
+        }
+        join_all(sessions.into_iter().map(|(_, mut accepted)| async move {
+            if let Some(task) = accepted.read_task.take() {
+                let _ = task.await;
+            }
+            close_connection(&accepted.conn).await;
+            // Drop even after a failed/timed-out close. DTLSConn's sender drop
+            // stops its internal reader, including the close-notify error path.
+        }))
+        .await;
+        let listener = self.listener.take().expect("listener");
+        match tokio::time::timeout(CLOSE_TIMEOUT, listener.close()).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => log::debug!("listener close failed: {e}"),
+            Err(_) => log::warn!("listener close timed out"),
+        }
+        drop(listener);
+        // webrtc-util's UDP reader is detached; let its close notification run
+        // after the last accepted connection and listener references are gone.
+        tokio::task::yield_now().await;
+    }
+}
+
+// Normal removals use shutdown() and await task completion. Keep cancellation
+// on Drop as a fallback if the supervisor itself is unexpectedly cancelled.
 impl Drop for ListenerSlot {
     fn drop(&mut self) {
-        self.accept_task.abort();
+        if let Some(task) = &self.accept_task {
+            task.abort();
+        }
+        for (session, accepted) in self.sessions.borrow_mut().drain() {
+            retire_connection(&self.conns, session, accepted.addr, &self.listen_tx);
+            if let Some(task) = accepted.read_task {
+                task.abort();
+            }
+        }
+    }
+}
+
+async fn close_connection(conn: &ArcConn) {
+    match tokio::time::timeout(CLOSE_TIMEOUT, conn.close()).await {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => log::debug!("dtls close failed: {e}"),
+        Err(_) => log::warn!("dtls close timed out"),
+    }
+}
+
+fn retire_connection(
+    conns: &Connections,
+    session: SessionId,
+    addr: SocketAddr,
+    listen_tx: &Sender<ListenEvent>,
+) {
+    let mut conns = conns.borrow_mut();
+    if let Some(index) = conns.iter().position(|c| c.session == session) {
+        conns.remove(index);
+        let _ = listen_tx.send(ListenEvent::Disconnected { addr, session });
     }
 }
 
@@ -131,8 +234,7 @@ impl LanMouseListener {
             ..Default::default()
         };
 
-        let conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>> =
-            Rc::new(AsyncMutex::new(Vec::new()));
+        let conns: Connections = Rc::new(RefCell::new(Vec::new()));
 
         // Bind one listener per local IPv4 address (skip loopback +
         // link-local) instead of a single 0.0.0.0:port listener. With
@@ -153,13 +255,13 @@ impl LanMouseListener {
         for ip in &initial_addrs {
             match try_bind_listener(*ip, port, &cfg).await {
                 Ok(listener) => {
-                    let task = spawn_accept_task(
+                    let slot = spawn_accept_task(
                         listener,
                         listen_tx.clone(),
                         conns.clone(),
                         connection_attempts.clone(),
                     );
-                    listeners.insert(*ip, ListenerSlot { accept_task: task });
+                    listeners.insert(*ip, slot);
                     bound_count += 1;
                     log::info!("listening for DTLS on {ip}:{port}");
                 }
@@ -172,13 +274,13 @@ impl LanMouseListener {
             let fallback = IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
             match try_bind_listener(fallback, port, &cfg).await {
                 Ok(listener) => {
-                    let task = spawn_accept_task(
+                    let slot = spawn_accept_task(
                         listener,
                         listen_tx.clone(),
                         conns.clone(),
                         connection_attempts.clone(),
                     );
-                    listeners.insert(fallback, ListenerSlot { accept_task: task });
+                    listeners.insert(fallback, slot);
                     log::info!(
                         "listening for DTLS on {fallback}:{port} (fallback — symmetric replies not guaranteed)"
                     );
@@ -209,7 +311,9 @@ impl LanMouseListener {
     }
 
     pub(crate) fn request_port_change(&mut self, port: u16) {
-        self.request_port_change.send(port).expect("channel closed");
+        self.request_port_change
+            .send(ListenerRequest::ChangePort(port))
+            .expect("channel closed");
     }
 
     pub(crate) async fn port_changed(&mut self) -> Result<u16, ListenerCreationError> {
@@ -217,34 +321,44 @@ impl LanMouseListener {
     }
 
     pub(crate) async fn terminate(&mut self) {
-        self.listen_task.abort();
-        let conns = self.conns.lock().await;
-        for (_, conn) in conns.iter() {
-            let _ = conn.close().await;
-        }
+        let _ = self.request_port_change.send(ListenerRequest::Terminate);
+        let _ = (&mut self.listen_task).await;
         self.listen_tx.close();
+    }
+
+    pub(crate) fn is_current_session(&self, addr: SocketAddr, session: SessionId) -> bool {
+        self.conns
+            .borrow()
+            .iter()
+            .rev()
+            .find(|c| c.addr == addr)
+            .is_some_and(|c| c.session == session)
     }
 
     pub(crate) async fn reply(&self, addr: SocketAddr, event: ProtoEvent) {
         log::trace!("reply {event} >=>=>=>=>=> {addr}");
         let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = event.into();
-        let conns = self.conns.lock().await;
-        for (a, conn) in conns.iter() {
-            if *a == addr {
-                let _ = conn.send(&buf[..len]).await;
-            }
+        let conn = self
+            .conns
+            .borrow()
+            .iter()
+            .rev()
+            .find(|c| c.addr == addr)
+            .map(|c| c.conn.clone());
+        if let Some(conn) = conn {
+            let _ = conn.send(&buf[..len]).await;
         }
     }
 
     pub(crate) async fn get_certificate_fingerprint(&self, addr: SocketAddr) -> Option<String> {
-        if let Some(conn) = self
+        let conn = self
             .conns
-            .lock()
-            .await
+            .borrow()
             .iter()
-            .find(|(a, _)| *a == addr)
-            .map(|(_, c)| c.clone())
-        {
+            .rev()
+            .find(|c| c.addr == addr)
+            .map(|c| c.conn.clone());
+        if let Some(conn) = conn {
             let conn: &DTLSConn = conn.as_any().downcast_ref().expect("dtls conn");
             let certs = conn.connection_state().await.peer_certificates;
             let cert = certs.first()?;
@@ -298,7 +412,7 @@ async fn try_bind_listener(
 ) -> Result<DynListener, ListenerCreationError> {
     let addr = SocketAddr::new(ip, port);
     let listener = listen(addr, cfg.clone()).await?;
-    Ok(Box::new(listener))
+    Ok(Arc::new(listener))
 }
 
 /// Spawn an accept loop for one bound listener. Each accepted
@@ -307,33 +421,45 @@ async fn try_bind_listener(
 /// re-published as `Rejected` so the UI can surface unauthorized
 /// fingerprints. The accept loop exits when the listener errors
 /// out or its task is aborted (interface went down, port changed).
+/// The returned slot owns every accepted connection and reader.
 fn spawn_accept_task(
     listener: DynListener,
     listen_tx: Sender<ListenEvent>,
-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
+    conns: Connections,
     connection_attempts: Arc<Mutex<VecDeque<String>>>,
-) -> JoinHandle<()> {
-    spawn_local(async move {
+) -> ListenerSlot {
+    let sessions: Sessions = Rc::new(RefCell::new(HashMap::new()));
+    let accept_sessions = sessions.clone();
+    let accept_listener = listener.clone();
+    let slot_conns = conns.clone();
+    let slot_listen_tx = listen_tx.clone();
+    let accept_task = spawn_local(async move {
         loop {
             // workaround for https://github.com/webrtc-rs/webrtc/issues/614
             let sleep = tokio::time::sleep(Duration::from_secs(2));
             tokio::select! {
                 _ = sleep => continue,
-                c = listener.accept() => match c {
+                c = accept_listener.accept() => match c {
                     Ok((conn, addr)) => {
                         log::info!("dtls client connected, ip: {addr}");
-                        {
-                            let mut conns_guard = conns.lock().await;
-                            conns_guard.push((addr, conn.clone()));
-                        }
+                        let session = SessionId::new();
+                        // Record ownership immediately, before certificate lookup can
+                        // yield and the accept task can be cancelled.
+                        accept_sessions.borrow_mut().insert(session, AcceptedConnection {
+                            addr, conn: conn.clone(), read_task: None,
+                        });
                         let dtls_conn: &DTLSConn = conn.as_any().downcast_ref().expect("dtls conn");
                         let certs = dtls_conn.connection_state().await.peer_certificates;
                         let cert = certs.first().expect("cert");
                         let fingerprint = crypto::generate_fingerprint(cert);
-                        listen_tx
-                            .send(ListenEvent::Accept { addr, fingerprint })
-                            .expect("channel closed");
-                        spawn_local(read_loop(conns.clone(), addr, conn, listen_tx.clone()));
+                        conns.borrow_mut().push(RegisteredConnection {
+                            addr, session, conn: conn.clone(),
+                        });
+                        let _ = listen_tx.send(ListenEvent::Accept { addr, fingerprint, session });
+                        let task = spawn_local(read_loop(
+                            conns.clone(), accept_sessions.clone(), session, addr, conn, listen_tx.clone(),
+                        ));
+                        accept_sessions.borrow_mut().get_mut(&session).expect("accepted session").read_task = Some(task);
                     }
                     Err(e) => {
                         if let Error::Std(ref se) = e {
@@ -360,23 +486,30 @@ fn spawn_accept_task(
                 },
             };
         }
-    })
+    });
+    ListenerSlot {
+        listener: Some(listener),
+        accept_task: Some(accept_task),
+        sessions,
+        conns: slot_conns,
+        listen_tx: slot_listen_tx,
+    }
 }
 
 /// Supervisor task: owns the set of active listeners, watches for
 /// interface up/down events via `if_watch`, and rebuilds listeners
 /// on port change. Each listener slot is keyed by its local IPv4
 /// address; on `IfEvent::Up` we add a slot, on `IfEvent::Down` we
-/// drop one (which aborts its accept task).
+/// completely shut down that binding before any replacement is created.
 #[allow(clippy::too_many_arguments)]
 fn spawn_supervisor_task(
     initial_port: u16,
     cfg: Config,
     initial_listeners: HashMap<IpAddr, ListenerSlot>,
     listen_tx: Sender<ListenEvent>,
-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
+    conns: Connections,
     connection_attempts: Arc<Mutex<VecDeque<String>>>,
-    mut request_port_change_rx: Receiver<u16>,
+    mut request_port_change_rx: Receiver<ListenerRequest>,
     port_changed_tx: Sender<Result<u16, ListenerCreationError>>,
 ) -> JoinHandle<()> {
     spawn_local(async move {
@@ -420,7 +553,9 @@ fn spawn_supervisor_task(
                         // `to_drop` was just collected from
                         // `listeners.keys()` and we run single-
                         // threaded, so the remove always returns Some.
-                        listeners.remove(&ip);
+                        if let Some(slot) = listeners.remove(&ip) {
+                            slot.shutdown(&conns, &listen_tx).await;
+                        }
                         log::info!(
                             "reconcile: dropping stale listener on {ip}:{port} \
                              (IP no longer present on any interface)"
@@ -438,13 +573,13 @@ fn spawn_supervisor_task(
                         {
                             match try_bind_listener(ip, port, &cfg).await {
                                 Ok(l) => {
-                                    let task = spawn_accept_task(
+                                    let listener_slot = spawn_accept_task(
                                         l,
                                         listen_tx.clone(),
                                         conns.clone(),
                                         connection_attempts.clone(),
                                     );
-                                    slot.insert(ListenerSlot { accept_task: task });
+                                    slot.insert(listener_slot);
                                     log::info!(
                                         "reconcile: now listening on {ip}:{port} \
                                          (IP appeared without an Up event)"
@@ -473,13 +608,13 @@ fn spawn_supervisor_task(
                         if usable && !listeners.contains_key(&ip) {
                             match try_bind_listener(ip, port, &cfg).await {
                                 Ok(l) => {
-                                    let task = spawn_accept_task(
+                                    let listener_slot = spawn_accept_task(
                                         l,
                                         listen_tx.clone(),
                                         conns.clone(),
                                         connection_attempts.clone(),
                                     );
-                                    listeners.insert(ip, ListenerSlot { accept_task: task });
+                                    listeners.insert(ip, listener_slot);
                                     log::info!("interface up: now listening on {ip}:{port}");
                                 }
                                 Err(e) => log::warn!("failed to bind on {ip}:{port}: {e}"),
@@ -488,27 +623,31 @@ fn spawn_supervisor_task(
                     }
                     Ok(if_watch::IfEvent::Down(net)) => {
                         let ip = net.addr();
-                        if listeners.remove(&ip).is_some() {
+                        if let Some(slot) = listeners.remove(&ip) {
+                            slot.shutdown(&conns, &listen_tx).await;
                             log::info!("interface down: stopped listening on {ip}:{port}");
                         }
                     }
                     Err(e) => log::debug!("if_watch error: {e}"),
                 },
                 p = request_port_change_rx.recv() => {
-                    let new_port = p.expect("channel closed");
-                    listeners.clear(); // Drop aborts each accept task
+                    let new_port = match p {
+                        Some(ListenerRequest::ChangePort(port)) => port,
+                        Some(ListenerRequest::Terminate) | None => break,
+                    };
+                    shutdown_listeners(&mut listeners, &conns, &listen_tx).await;
                     let mut bound = 0usize;
                     let addrs = enumerate_listenable_ipv4();
                     for ip in &addrs {
                         match try_bind_listener(*ip, new_port, &cfg).await {
                             Ok(l) => {
-                                let task = spawn_accept_task(
+                                let slot = spawn_accept_task(
                                     l,
                                     listen_tx.clone(),
                                     conns.clone(),
                                     connection_attempts.clone(),
                                 );
-                                listeners.insert(*ip, ListenerSlot { accept_task: task });
+                                listeners.insert(*ip, slot);
                                 bound += 1;
                             }
                             Err(e) => log::warn!("port change: failed to bind {ip}:{new_port}: {e}"),
@@ -527,15 +666,32 @@ fn spawn_supervisor_task(
                 }
             }
         }
+        shutdown_listeners(&mut listeners, &conns, &listen_tx).await;
     })
 }
 
+async fn shutdown_listeners(
+    listeners: &mut HashMap<IpAddr, ListenerSlot>,
+    conns: &Connections,
+    listen_tx: &Sender<ListenEvent>,
+) {
+    let slots: Vec<_> = listeners.drain().map(|(_, slot)| slot).collect();
+    join_all(
+        slots
+            .into_iter()
+            .map(|slot| slot.shutdown(conns, listen_tx)),
+    )
+    .await;
+}
+
 async fn read_loop(
-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
+    conns: Connections,
+    sessions: Sessions,
+    session: SessionId,
     addr: SocketAddr,
     conn: ArcConn,
     dtls_tx: Sender<ListenEvent>,
-) -> Result<(), Error> {
+) {
     // Buffer sized for the largest legal clipboard frame; mouse /
     // keyboard datagrams use only the first MAX_EVENT_SIZE bytes.
     let mut b = [0u8; MAX_CLIPBOARD_SIZE];
@@ -547,7 +703,11 @@ async fn read_loop(
         let datagram = &b[..n];
         match decode_listen_datagram(datagram) {
             Some(event) => dtls_tx
-                .send(ListenEvent::Msg { event, addr })
+                .send(ListenEvent::Msg {
+                    event,
+                    addr,
+                    session,
+                })
                 .expect("channel closed"),
             None => {
                 // Skip the malformed/unknown datagram and keep
@@ -564,13 +724,9 @@ async fn read_loop(
         }
     }
     log::info!("dtls client disconnected {addr:?}");
-    let mut conns = conns.lock().await;
-    let index = conns
-        .iter()
-        .position(|(a, _)| *a == addr)
-        .expect("connection not found");
-    conns.remove(index);
-    Ok(())
+    retire_connection(&conns, session, addr, &dtls_tx);
+    close_connection(&conn).await;
+    sessions.borrow_mut().remove(&session);
 }
 
 /// Classify a DTLS datagram by its first-byte event-type tag and
@@ -587,4 +743,298 @@ fn decode_listen_datagram(bytes: &[u8]) -> Option<ProtoEvent> {
     let copy_len = bytes.len().min(MAX_EVENT_SIZE);
     fixed[..copy_len].copy_from_slice(&bytes[..copy_len]);
     fixed.try_into().ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::net::UdpSocket;
+
+    fn run_local(future: impl std::future::Future<Output = ()>) {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(tokio::task::LocalSet::new().run_until(future));
+    }
+
+    fn server_config() -> Config {
+        Config {
+            certificates: vec![Certificate::generate_self_signed(["test".to_owned()]).unwrap()],
+            extended_master_secret: ExtendedMasterSecretType::Require,
+            client_auth: RequireAnyClientCert,
+            ..Default::default()
+        }
+    }
+
+    async fn connect(addr: SocketAddr) -> ArcConn {
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        socket.connect(addr).await.unwrap();
+        let cfg = Config {
+            certificates: vec![Certificate::generate_self_signed(["test".to_owned()]).unwrap()],
+            extended_master_secret: ExtendedMasterSecretType::Require,
+            insecure_skip_verify: true,
+            ..Default::default()
+        };
+        Arc::new(
+            DTLSConn::new(Arc::new(socket), cfg, true, None)
+                .await
+                .unwrap(),
+        )
+    }
+
+    #[test]
+    fn active_dtls_shutdown_rebinds_and_accepts_repeatedly() {
+        run_local(async {
+            let cfg = server_config();
+            let conns: Connections = Default::default();
+            let attempts = Default::default();
+            let (tx, mut rx) = channel();
+            let listener = try_bind_listener("127.0.0.1".parse().unwrap(), 0, &cfg)
+                .await
+                .unwrap();
+            let addr = listener.addr().await.unwrap();
+            let mut slot = spawn_accept_task(listener, tx.clone(), conns.clone(), attempts);
+            for _ in 0..4 {
+                let client = tokio::time::timeout(Duration::from_secs(5), connect(addr))
+                    .await
+                    .unwrap();
+                let accepted = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert!(matches!(accepted, ListenEvent::Accept { .. }));
+                let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = ProtoEvent::Ping.into();
+                client.send(&buf[..len]).await.unwrap();
+                let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert!(matches!(
+                    event,
+                    ListenEvent::Msg {
+                        event: ProtoEvent::Ping,
+                        ..
+                    }
+                ));
+                slot.shutdown(&conns, &tx).await;
+                assert!(conns.borrow().is_empty());
+                assert!(matches!(
+                    rx.recv().await,
+                    Some(ListenEvent::Disconnected { .. })
+                ));
+                drop(client);
+                let listener = try_bind_listener(addr.ip(), addr.port(), &cfg)
+                    .await
+                    .unwrap();
+                slot = spawn_accept_task(listener, tx.clone(), conns.clone(), Default::default());
+            }
+            slot.shutdown(&conns, &tx).await;
+        });
+    }
+
+    struct TestConn {
+        socket: UdpSocket,
+        hang_close: bool,
+    }
+
+    #[async_trait]
+    impl Conn for TestConn {
+        async fn connect(&self, addr: SocketAddr) -> webrtc_util::Result<()> {
+            self.socket.connect(addr).await.map_err(Into::into)
+        }
+        async fn recv(&self, _: &mut [u8]) -> webrtc_util::Result<usize> {
+            std::future::pending().await
+        }
+        async fn recv_from(&self, _: &mut [u8]) -> webrtc_util::Result<(usize, SocketAddr)> {
+            std::future::pending().await
+        }
+        async fn send(&self, _: &[u8]) -> webrtc_util::Result<usize> {
+            Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe).into())
+        }
+        async fn send_to(&self, buf: &[u8], _: SocketAddr) -> webrtc_util::Result<usize> {
+            self.send(buf).await
+        }
+        fn local_addr(&self) -> webrtc_util::Result<SocketAddr> {
+            self.socket.local_addr().map_err(Into::into)
+        }
+        fn remote_addr(&self) -> Option<SocketAddr> {
+            None
+        }
+        async fn close(&self) -> webrtc_util::Result<()> {
+            if self.hang_close {
+                std::future::pending().await
+            } else {
+                Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe).into())
+            }
+        }
+        fn as_any(&self) -> &(dyn std::any::Any + Send + Sync) {
+            self
+        }
+    }
+
+    struct TestListener(Arc<AtomicBool>);
+    #[async_trait]
+    impl Listener for TestListener {
+        async fn accept(&self) -> webrtc_util::Result<(ArcConn, SocketAddr)> {
+            std::future::pending().await
+        }
+        async fn close(&self) -> webrtc_util::Result<()> {
+            self.0.store(true, Ordering::SeqCst);
+            Ok(())
+        }
+        async fn addr(&self) -> webrtc_util::Result<SocketAddr> {
+            Ok("127.0.0.1:1".parse().unwrap())
+        }
+    }
+
+    fn add_test_session(
+        slot: &ListenerSlot,
+        conns: &Connections,
+        addr: SocketAddr,
+        conn: ArcConn,
+    ) -> SessionId {
+        let session = SessionId::new();
+        conns.borrow_mut().push(RegisteredConnection {
+            addr,
+            session,
+            conn: conn.clone(),
+        });
+        let reader_conn = conn.clone();
+        let read_task = spawn_local(async move {
+            let mut buf = [0; 1];
+            let _ = reader_conn.recv(&mut buf).await;
+        });
+        slot.sessions.borrow_mut().insert(
+            session,
+            AcceptedConnection {
+                addr,
+                conn,
+                read_task: Some(read_task),
+            },
+        );
+        session
+    }
+
+    #[test]
+    fn supervisor_termination_drains_every_binding_with_one_close_budget() {
+        run_local(async {
+            let conns: Connections = Default::default();
+            let (tx, mut rx) = channel();
+            let (request_tx, request_rx) = channel();
+            let (port_tx, _) = channel();
+            let mut listeners = HashMap::new();
+            let mut retired = Vec::new();
+            let mut closed = Vec::new();
+            for ip in ["127.0.0.1", "127.0.0.2"] {
+                let flag = Arc::new(AtomicBool::new(false));
+                let slot = spawn_accept_task(
+                    Arc::new(TestListener(flag.clone())),
+                    tx.clone(),
+                    conns.clone(),
+                    Default::default(),
+                );
+                let conn: ArcConn = Arc::new(TestConn {
+                    socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
+                    hang_close: true,
+                });
+                retired.push(Arc::downgrade(&conn));
+                add_test_session(&slot, &conns, "127.0.0.1:5555".parse().unwrap(), conn);
+                listeners.insert(ip.parse().unwrap(), slot);
+                closed.push(flag);
+            }
+            let task = spawn_supervisor_task(
+                0,
+                server_config(),
+                listeners,
+                tx,
+                conns.clone(),
+                Default::default(),
+                request_rx,
+                port_tx,
+            );
+            request_tx.send(ListenerRequest::Terminate).unwrap();
+            tokio::time::timeout(Duration::from_millis(1800), task)
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(conns.borrow().is_empty());
+            assert!(retired.into_iter().all(|weak| weak.upgrade().is_none()));
+            assert!(closed.into_iter().all(|flag| flag.load(Ordering::SeqCst)));
+            for _ in 0..2 {
+                assert!(matches!(
+                    rx.recv().await,
+                    Some(ListenEvent::Disconnected { .. })
+                ));
+            }
+        });
+    }
+
+    #[test]
+    fn failed_and_hung_close_retire_only_the_owned_binding() {
+        run_local(async {
+            let conns: Connections = Default::default();
+            let (tx, mut rx) = channel();
+            let closed = Arc::new(AtomicBool::new(false));
+            let slot = spawn_accept_task(
+                Arc::new(TestListener(closed.clone())),
+                tx.clone(),
+                conns.clone(),
+                Default::default(),
+            );
+            let sibling_closed = Arc::new(AtomicBool::new(false));
+            let sibling = spawn_accept_task(
+                Arc::new(TestListener(sibling_closed.clone())),
+                tx.clone(),
+                conns.clone(),
+                Default::default(),
+            );
+            let peer = "127.0.0.1:5555".parse().unwrap();
+            let mut retired = Vec::new();
+            let mut old_ids = Vec::new();
+            for hang_close in [false, true] {
+                let conn: ArcConn = Arc::new(TestConn {
+                    socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
+                    hang_close,
+                });
+                retired.push((conn.local_addr().unwrap(), Arc::downgrade(&conn)));
+                old_ids.push(add_test_session(&slot, &conns, peer, conn));
+            }
+            let survivor: ArcConn = Arc::new(TestConn {
+                socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
+                hang_close: false,
+            });
+            let survivor_addr = survivor.local_addr().unwrap();
+            let survivor_id = add_test_session(&sibling, &conns, peer, survivor);
+            tokio::task::yield_now().await;
+            tokio::time::timeout(Duration::from_secs(2), slot.shutdown(&conns, &tx))
+                .await
+                .unwrap();
+            assert!(closed.load(Ordering::SeqCst));
+            assert!(!sibling_closed.load(Ordering::SeqCst));
+            assert_eq!(conns.borrow().len(), 1);
+            assert_eq!(conns.borrow()[0].session, survivor_id);
+            for (addr, weak) in retired {
+                assert!(weak.upgrade().is_none());
+                assert!(UdpSocket::bind(addr).await.is_ok());
+            }
+            assert!(UdpSocket::bind(survivor_addr).await.is_err());
+            // A stale reader's cleanup neither panics nor removes its sibling.
+            retire_connection(&conns, old_ids[0], peer, &tx);
+            assert_eq!(conns.borrow()[0].session, survivor_id);
+            let mut disconnected = HashSet::new();
+            for _ in 0..old_ids.len() {
+                if let Some(ListenEvent::Disconnected { session, .. }) = rx.recv().await {
+                    disconnected.insert(session);
+                } else {
+                    panic!("expected disconnect");
+                }
+            }
+            assert_eq!(disconnected, old_ids.into_iter().collect());
+            sibling.shutdown(&conns, &tx).await;
+            assert!(conns.borrow().is_empty());
+        });
+    }
 }

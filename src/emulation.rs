@@ -1,5 +1,5 @@
 use crate::config::local_commit;
-use crate::listen::{LanMouseListener, ListenEvent, ListenerCreationError};
+use crate::listen::{LanMouseListener, ListenEvent, ListenerCreationError, SessionId};
 use futures::StreamExt;
 use input_emulation::{
     EmulationHandle, InputEmulation, InputEmulationError, ReceivePostProcessing,
@@ -118,6 +118,7 @@ impl Emulation {
             request_rx,
             event_tx,
             addr_to_fingerprint: HashMap::new(),
+            sessions: HashMap::new(),
             incoming_peers: HashMap::new(),
         };
         let task = spawn_local(emulation_task.run());
@@ -185,6 +186,7 @@ struct ListenTask {
     /// and on `SetIncomingPeers` to build the per-handle
     /// `ReceivePostProcessing` snapshots that go into InputEmulation.
     incoming_peers: HashMap<String, IncomingPeerConfig>,
+    sessions: HashMap<SocketAddr, SessionId>,
 }
 
 impl ListenTask {
@@ -203,7 +205,11 @@ impl ListenTask {
         loop {
             select! {
                 e = self.listener.next() => {match e {
-                    Some(ListenEvent::Msg { event, addr }) => {
+                    Some(ListenEvent::Msg { event, addr, session }) => {
+                        if self.sessions.get(&addr) != Some(&session)
+                            || !self.listener.is_current_session(addr, session) {
+                            continue;
+                        }
                         log::trace!("{event} <-<-<-<-<- {addr}");
                         last_response.insert(addr, Instant::now());
                         match event {
@@ -348,7 +354,16 @@ impl ListenTask {
                             _ => {}
                         }
                     }
-                    Some(ListenEvent::Accept { addr, fingerprint }) => {
+                    Some(ListenEvent::Accept { addr, fingerprint, session }) => {
+                        // Port teardown may retire a session while its Accept is
+                        // still queued. Do not recreate a handle for that session.
+                        if !self.listener.is_current_session(addr, session) {
+                            continue;
+                        }
+                        if self.sessions.insert(addr, session).is_some() {
+                            self.emulation_proxy.remove(addr);
+                            last_response.remove(&addr);
+                        }
                         self.addr_to_fingerprint.insert(addr, fingerprint.clone());
                         // Pre-cache the per-handle post-processing so
                         // EmulationTask can pick it up the moment the
@@ -356,6 +371,12 @@ impl ListenTask {
                         let pp = self.post_processing_for_addr(addr);
                         self.emulation_proxy.set_post_processing(addr, pp);
                         self.event_tx.send(EmulationEvent::Connected { addr, fingerprint }).expect("channel closed");
+                    }
+                    Some(ListenEvent::Disconnected { addr, session }) => {
+                        if disconnect_session(addr, session, &mut self.sessions,
+                            &mut self.addr_to_fingerprint, &self.emulation_proxy, &self.event_tx) {
+                            last_response.remove(&addr);
+                        }
                     }
                     Some(ListenEvent::Rejected { fingerprint }) => {
                         if rejected_connections.insert(fingerprint.clone(), Instant::now())
@@ -374,6 +395,14 @@ impl ListenTask {
                     // notify the other end that we hit a barrier (should release capture)
                     EmulationRequest::Release(addr) => self.listener.reply(addr, ProtoEvent::Leave(0)).await,
                     EmulationRequest::ChangePort(port) => {
+                        // The port-change acknowledgement waits for bounded network
+                        // teardown. Release active handles before that await.
+                        for (addr, _) in self.sessions.drain() {
+                            self.emulation_proxy.remove(addr);
+                            self.event_tx.send(EmulationEvent::Disconnected { addr }).expect("channel closed");
+                        }
+                        last_response.clear();
+                        self.addr_to_fingerprint.clear();
                         self.listener.request_port_change(port);
                         let result = self.listener.port_changed().await;
                         self.event_tx.send(EmulationEvent::PortChanged(result)).expect("channel closed");
@@ -416,6 +445,28 @@ impl ListenTask {
         self.listener.terminate().await;
         self.emulation_proxy.terminate().await;
     }
+}
+
+/// A disconnect belongs to one DTLS session, even when a replacement or an
+/// unaffected local binding uses the same remote SocketAddr.
+fn disconnect_session(
+    addr: SocketAddr,
+    session: SessionId,
+    sessions: &mut HashMap<SocketAddr, SessionId>,
+    fingerprints: &mut HashMap<SocketAddr, String>,
+    proxy: &EmulationProxy,
+    events: &Sender<EmulationEvent>,
+) -> bool {
+    if sessions.get(&addr) != Some(&session) {
+        return false;
+    }
+    sessions.remove(&addr);
+    fingerprints.remove(&addr);
+    proxy.remove(addr);
+    events
+        .send(EmulationEvent::Disconnected { addr })
+        .expect("channel closed");
+    true
 }
 
 /// proxy handling the actual input emulation,
@@ -761,5 +812,44 @@ impl<T> Drop for DropGuard<T> {
         self.tx
             .send(self.on_drop.take().expect("item"))
             .expect("channel closed");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disconnect_releases_current_handle_and_preserves_replacement() {
+        tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap()
+            .block_on(tokio::task::LocalSet::new().run_until(async {
+                let (request_tx, mut requests) = channel();
+                let (_, event_rx) = channel();
+                let proxy = EmulationProxy {
+                    emulation_active: Rc::new(Cell::new(true)),
+                    exit_requested: Rc::new(Cell::new(false)),
+                    request_tx, event_rx,
+                    task: spawn_local(std::future::pending()),
+                    display_bounds: Rc::new(Cell::new(None)),
+                };
+                let (events, mut event_rx) = channel();
+                let addr = "127.0.0.1:5555".parse().unwrap();
+                let old = SessionId::new();
+                let current = SessionId::new();
+                let mut sessions = HashMap::from([(addr, current)]);
+                let mut fingerprints = HashMap::from([(addr, "current".to_owned())]);
+                assert!(!disconnect_session(addr, old, &mut sessions, &mut fingerprints, &proxy, &events));
+                assert_eq!(sessions.get(&addr), Some(&current));
+                assert_eq!(fingerprints.get(&addr).unwrap(), "current");
+                assert!(tokio::time::timeout(Duration::from_millis(10), requests.recv()).await.is_err());
+                assert!(disconnect_session(addr, current, &mut sessions, &mut fingerprints, &proxy, &events));
+                assert!(matches!(requests.recv().await, Some(ProxyRequest::Remove(a)) if a == addr));
+                assert!(matches!(event_rx.recv().await, Some(EmulationEvent::Disconnected { addr: a }) if a == addr));
+                assert!(sessions.is_empty());
+                assert!(fingerprints.is_empty());
+                // Duplicate/stale cleanup cannot remove a newly-created handle.
+                assert!(!disconnect_session(addr, current, &mut sessions, &mut fingerprints, &proxy, &events));
+                proxy.task.abort();
+            }));
     }
 }

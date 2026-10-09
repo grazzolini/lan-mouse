@@ -51,6 +51,22 @@ sequenceDiagram
     Bob-->>-Alice: Ack (Keyboard Layout)
 ```
 
+## Network recovery
+
+An outgoing connection is retired when sending, receiving, or its heartbeat
+fails. Its receive and heartbeat operations stop together, and shutdown has a
+bounded wait even when the network is unavailable. The next input event can
+start a fresh connection to the configured peer.
+
+For suspend/resume diagnostics, capture logs with `LAN_MOUSE_LOG_LEVEL=debug`
+before suspending. After the network returns, check both input directions and,
+on builds with clipboard support, copy fresh text after reconnecting. A capture
+or emulation backend shown as disabled requires separate backend diagnostics.
+
+Each listener on the custom stack owns the connections accepted on its local
+address. Interface removal, port changes, and shutdown retire those connections
+before releasing or rebinding the listener; other interfaces remain available.
+
 ## Problems
 The general Idea is to have a bidirectional connection by default, meaning
 any connected device can not only receive events but also send events back.

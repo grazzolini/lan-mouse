@@ -16,10 +16,17 @@ this snapshot and does not depend on release tags being present in the fork.
 The patch has a SHA-256 checksum in `PKGBUILD`. This is a local package recipe,
 not an AUR publication.
 
-Verification for this snapshot: the patch applies with `git apply --3way` to a
-clean pinned checkout and reproduces the stack source exactly. On macOS, 33
-focused tests, formatting and workspace all-feature Clippy passed. The Linux
-package build and live GUI, hotplug and cross-device behavior were not tested.
+Reconnect recovery update: 2026-10-09 (`pkgrel=2`). Outgoing connections retire
+their receive and heartbeat operations even if DTLS shutdown fails. Each local
+listener now retires its accepted connections before an interface or port is
+rebound, preserving other listeners and releasing disconnected emulation handles.
+
+Verification for this update: the patch applies to a clean pinned source archive
+and reproduces the stack source exactly. On macOS, all 43 workspace tests,
+formatting and strict workspace all-feature Clippy passed. Tests include repeated
+live DTLS reconnect/rebind cycles, failed or hanging shutdown, and stale-session
+isolation. The Linux package build and actual Sway suspend/resume with
+bidirectional input and clipboard remain unverified.
 
 ## Original PR Status
 

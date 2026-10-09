@@ -22,7 +22,7 @@ index b3fbd05ef01b6f81fb4ec3dfbb020f7cf903a296..05b1199d7bab556a835a18a9a3321a8a
  .idea/
  .vs/
 diff --git a/Cargo.lock b/Cargo.lock
-index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd7e3274a7 100644
+index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..30b9f4dbfcfa9b394b9e2589179b120fb2c3300b 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
 @@ -2,6 +2,12 @@
@@ -1446,7 +1446,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "kqueue-sys",
   "libc",
-@@ -1735,21 +2121,36 @@ dependencies = [
+@@ -1735,21 +2121,37 @@ dependencies = [
  
  [[package]]
  name = "kqueue-sys"
@@ -1478,6 +1478,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  version = "0.11.0"
  dependencies = [
 - "clap",
++ "async-trait",
 + "clap 4.6.6",
   "env_logger",
   "futures",
@@ -1487,7 +1488,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "input-capture",
   "input-emulation",
   "input-event",
-@@ -1760,6 +2161,8 @@ dependencies = [
+@@ -1760,6 +2162,8 @@ dependencies = [
   "libc",
   "local-channel",
   "log",
@@ -1496,7 +1497,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "notify",
   "rcgen",
   "rustls",
-@@ -1768,7 +2171,7 @@ dependencies = [
+@@ -1768,7 +2172,7 @@ dependencies = [
   "sha2",
   "shadow-rs",
   "slab",
@@ -1505,7 +1506,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "tokio",
   "tokio-util",
   "toml 0.8.23",
-@@ -1781,10 +2184,10 @@ dependencies = [
+@@ -1781,10 +2185,10 @@ dependencies = [
  name = "lan-mouse-cli"
  version = "0.3.0"
  dependencies = [
@@ -1518,7 +1519,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "tokio",
  ]
  
-@@ -1796,10 +2199,12 @@ dependencies = [
+@@ -1796,10 +2200,12 @@ dependencies = [
   "glib-build-tools",
   "gtk4",
   "hostname",
@@ -1532,7 +1533,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -1810,7 +2215,7 @@ dependencies = [
+@@ -1810,7 +2216,7 @@ dependencies = [
   "log",
   "serde",
   "serde_json",
@@ -1541,7 +1542,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "tokio",
   "tokio-stream",
  ]
-@@ -1822,7 +2227,7 @@ dependencies = [
+@@ -1822,7 +2228,7 @@ dependencies = [
   "input-event",
   "num_enum",
   "paste",
@@ -1550,7 +1551,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -1831,12 +2236,6 @@ version = "1.5.0"
+@@ -1831,12 +2237,6 @@ version = "1.5.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
  
@@ -1563,7 +1564,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "libadwaita"
  version = "0.7.2"
-@@ -1870,15 +2269,24 @@ dependencies = [
+@@ -1870,15 +2270,24 @@ dependencies = [
  
  [[package]]
  name = "libc"
@@ -1592,7 +1593,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "cc",
   "libc",
-@@ -1888,9 +2296,9 @@ dependencies = [
+@@ -1888,9 +2297,9 @@ dependencies = [
  
  [[package]]
  name = "libz-sys"
@@ -1604,7 +1605,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "cc",
   "libc",
-@@ -1906,9 +2314,9 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
+@@ -1906,9 +2315,9 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
  
  [[package]]
  name = "litemap"
@@ -1616,7 +1617,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "local-channel"
-@@ -1938,15 +2346,36 @@ dependencies = [
+@@ -1938,15 +2347,36 @@ dependencies = [
  
  [[package]]
  name = "log"
@@ -1657,7 +1658,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "memmap"
-@@ -1982,11 +2411,31 @@ version = "0.2.1"
+@@ -1982,11 +2412,31 @@ version = "0.2.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
  
@@ -1691,7 +1692,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "libc",
   "log",
-@@ -1994,6 +2443,101 @@ dependencies = [
+@@ -1994,6 +2444,101 @@ dependencies = [
   "windows-sys 0.61.2",
  ]
  
@@ -1793,7 +1794,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "nix"
  version = "0.26.4"
-@@ -2007,6 +2551,18 @@ dependencies = [
+@@ -2007,6 +2552,18 @@ dependencies = [
   "pin-utils",
  ]
  
@@ -1812,7 +1813,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "nom"
  version = "7.1.3"
-@@ -2017,13 +2573,22 @@ dependencies = [
+@@ -2017,13 +2574,22 @@ dependencies = [
   "minimal-lexical",
  ]
  
@@ -1836,7 +1837,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "fsevent-sys",
   "inotify",
   "kqueue",
-@@ -2041,14 +2606,14 @@ version = "2.1.0"
+@@ -2041,14 +2607,14 @@ version = "2.1.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "42b8cfee0e339a0337359f3c88165702ac6e600dc01c0cc9579a92d62b08477a"
  dependencies = [
@@ -1854,7 +1855,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "num-integer",
   "num-traits",
-@@ -2056,15 +2621,15 @@ dependencies = [
+@@ -2056,15 +2622,15 @@ dependencies = [
  
  [[package]]
  name = "num-conv"
@@ -1874,7 +1875,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "num-traits",
  ]
-@@ -2097,7 +2662,7 @@ dependencies = [
+@@ -2097,7 +2663,7 @@ dependencies = [
   "proc-macro-crate",
   "proc-macro2",
   "quote",
@@ -1883,7 +1884,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -2109,6 +2674,209 @@ dependencies = [
+@@ -2109,6 +2675,209 @@ dependencies = [
   "libc",
  ]
  
@@ -2093,7 +2094,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "oid-registry"
  version = "0.7.1"
-@@ -2146,6 +2914,16 @@ dependencies = [
+@@ -2146,6 +2915,16 @@ dependencies = [
   "pin-project-lite",
  ]
  
@@ -2110,7 +2111,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "p256"
  version = "0.13.2"
-@@ -2254,6 +3032,17 @@ version = "2.3.2"
+@@ -2254,6 +3033,17 @@ version = "2.3.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
  
@@ -2128,7 +2129,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "pin-project-lite"
  version = "0.2.17"
-@@ -2278,9 +3067,49 @@ dependencies = [
+@@ -2278,9 +3068,49 @@ dependencies = [
  
  [[package]]
  name = "pkg-config"
@@ -2153,8 +2154,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
 +[[package]]
 +name = "png"
 +version = "0.18.1"
- source = "registry+https://github.com/rust-lang/crates.io-index"
--checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
++source = "registry+https://github.com/rust-lang/crates.io-index"
 +checksum = "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61"
 +dependencies = [
 + "bitflags 2.13.1",
@@ -2167,7 +2167,8 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
 +[[package]]
 +name = "polling"
 +version = "3.11.0"
-+source = "registry+https://github.com/rust-lang/crates.io-index"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 +checksum = "5d0e4f59085d47d8241c88ead0f274e8a0cb551f3625263c05eb8dd897c34218"
 +dependencies = [
 + "cfg-if",
@@ -2180,7 +2181,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "polyval"
-@@ -2296,24 +3125,24 @@ dependencies = [
+@@ -2296,24 +3126,24 @@ dependencies = [
  
  [[package]]
  name = "portable-atomic"
@@ -2211,7 +2212,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "zerovec",
  ]
-@@ -2333,16 +3162,6 @@ dependencies = [
+@@ -2333,16 +3163,6 @@ dependencies = [
   "zerocopy",
  ]
  
@@ -2228,7 +2229,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "primeorder"
  version = "0.13.6"
-@@ -2358,42 +3177,48 @@ version = "3.5.0"
+@@ -2358,42 +3178,48 @@ version = "3.5.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
  dependencies = [
@@ -2290,7 +2291,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "r-efi"
  version = "6.0.0"
-@@ -2402,9 +3227,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+@@ -2402,9 +3228,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
  
  [[package]]
  name = "rand"
@@ -2302,7 +2303,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "libc",
   "rand_chacha",
-@@ -2449,14 +3274,14 @@ version = "0.5.18"
+@@ -2449,14 +3275,14 @@ version = "0.5.18"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
  dependencies = [
@@ -2320,7 +2321,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "aho-corasick",
   "memchr",
-@@ -2466,9 +3291,9 @@ dependencies = [
+@@ -2466,9 +3292,9 @@ dependencies = [
  
  [[package]]
  name = "regex-automata"
@@ -2332,7 +2333,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "aho-corasick",
   "memchr",
-@@ -2477,15 +3302,15 @@ dependencies = [
+@@ -2477,15 +3303,15 @@ dependencies = [
  
  [[package]]
  name = "regex-syntax"
@@ -2352,7 +2353,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "enumflags2",
   "futures-util",
-@@ -2518,6 +3343,24 @@ dependencies = [
+@@ -2518,6 +3344,24 @@ dependencies = [
   "windows-sys 0.52.0",
  ]
  
@@ -2377,7 +2378,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "rustc_version"
  version = "0.4.1"
-@@ -2533,7 +3376,7 @@ version = "4.1.0"
+@@ -2533,7 +3377,7 @@ version = "4.1.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "faf0c4a6ece9950b9abdb62b1cfcf2a68b3b67a10ba445b3bb85be2a293d0632"
  dependencies = [
@@ -2386,7 +2387,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -2542,7 +3385,7 @@ version = "1.1.4"
+@@ -2542,7 +3386,7 @@ version = "1.1.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
  dependencies = [
@@ -2395,7 +2396,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "errno",
   "libc",
   "linux-raw-sys",
-@@ -2551,9 +3394,9 @@ dependencies = [
+@@ -2551,9 +3395,9 @@ dependencies = [
  
  [[package]]
  name = "rustls"
@@ -2407,7 +2408,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "once_cell",
   "ring",
-@@ -2565,18 +3408,18 @@ dependencies = [
+@@ -2565,18 +3409,18 @@ dependencies = [
  
  [[package]]
  name = "rustls-pki-types"
@@ -2430,7 +2431,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "ring",
   "rustls-pki-types",
-@@ -2585,9 +3428,9 @@ dependencies = [
+@@ -2585,9 +3429,9 @@ dependencies = [
  
  [[package]]
  name = "rustversion"
@@ -2442,7 +2443,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "same-file"
-@@ -2630,9 +3473,9 @@ dependencies = [
+@@ -2630,9 +3474,9 @@ dependencies = [
  
  [[package]]
  name = "serde"
@@ -2454,7 +2455,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "serde_core",
   "serde_derive",
-@@ -2640,29 +3483,29 @@ dependencies = [
+@@ -2640,29 +3484,29 @@ dependencies = [
  
  [[package]]
  name = "serde_core"
@@ -2491,7 +2492,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "itoa",
   "memchr",
-@@ -2673,13 +3516,13 @@ dependencies = [
+@@ -2673,13 +3517,13 @@ dependencies = [
  
  [[package]]
  name = "serde_repr"
@@ -2508,7 +2509,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -2702,9 +3545,9 @@ dependencies = [
+@@ -2702,9 +3546,9 @@ dependencies = [
  
  [[package]]
  name = "sha1"
@@ -2520,7 +2521,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "cfg-if",
   "cpufeatures",
-@@ -2739,9 +3582,9 @@ dependencies = [
+@@ -2739,9 +3583,9 @@ dependencies = [
  
  [[package]]
  name = "shlex"
@@ -2532,7 +2533,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "signal-hook-registry"
-@@ -2763,6 +3606,12 @@ dependencies = [
+@@ -2763,6 +3607,12 @@ dependencies = [
   "rand_core",
  ]
  
@@ -2545,7 +2546,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "slab"
  version = "0.4.12"
-@@ -2771,20 +3620,40 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+@@ -2771,20 +3621,40 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
  
  [[package]]
  name = "smallvec"
@@ -2590,7 +2591,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "spki"
  version = "0.7.3"
-@@ -2801,6 +3670,12 @@ version = "1.2.1"
+@@ -2801,6 +3671,12 @@ version = "1.2.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
  
@@ -2603,7 +2604,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "strsim"
  version = "0.11.1"
-@@ -2815,9 +3690,20 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+@@ -2815,9 +3691,20 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
  
  [[package]]
  name = "syn"
@@ -2626,7 +2627,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "proc-macro2",
   "quote",
-@@ -2832,7 +3718,28 @@ checksum = "728a70f3dbaf5bab7f0c4b1ac8d7ae5ea60a4b5549c8a5914361c99147a709d2"
+@@ -2832,7 +3719,28 @@ checksum = "728a70f3dbaf5bab7f0c4b1ac8d7ae5ea60a4b5549c8a5914361c99147a709d2"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -2656,7 +2657,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -2844,15 +3751,15 @@ dependencies = [
+@@ -2844,15 +3752,15 @@ dependencies = [
   "cfg-expr",
   "heck",
   "pkg-config",
@@ -2675,7 +2676,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "tempfile"
-@@ -2861,12 +3768,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+@@ -2861,12 +3769,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
  dependencies = [
   "fastrand",
@@ -2698,7 +2699,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "thiserror"
  version = "1.0.69"
-@@ -2878,11 +3794,11 @@ dependencies = [
+@@ -2878,11 +3795,11 @@ dependencies = [
  
  [[package]]
  name = "thiserror"
@@ -2713,7 +2714,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -2893,28 +3809,41 @@ checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+@@ -2893,28 +3810,41 @@ checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -2762,7 +2763,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "libc",
   "num-conv",
   "num_threads",
-@@ -2926,15 +3855,15 @@ dependencies = [
+@@ -2926,15 +3856,15 @@ dependencies = [
  
  [[package]]
  name = "time-core"
@@ -2782,7 +2783,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "num-conv",
   "time-core",
-@@ -2942,9 +3871,9 @@ dependencies = [
+@@ -2942,9 +3872,9 @@ dependencies = [
  
  [[package]]
  name = "tinystr"
@@ -2794,7 +2795,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "displaydoc",
   "zerovec",
-@@ -2952,9 +3881,9 @@ dependencies = [
+@@ -2952,9 +3882,9 @@ dependencies = [
  
  [[package]]
  name = "tokio"
@@ -2806,7 +2807,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "bytes",
   "libc",
-@@ -2970,20 +3899,20 @@ dependencies = [
+@@ -2970,20 +3900,20 @@ dependencies = [
  
  [[package]]
  name = "tokio-macros"
@@ -2832,7 +2833,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "futures-core",
   "pin-project-lite",
-@@ -2992,9 +3921,9 @@ dependencies = [
+@@ -2992,9 +3922,9 @@ dependencies = [
  
  [[package]]
  name = "tokio-util"
@@ -2844,7 +2845,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "bytes",
   "futures-core",
-@@ -3017,9 +3946,9 @@ dependencies = [
+@@ -3017,9 +3947,9 @@ dependencies = [
  
  [[package]]
  name = "toml"
@@ -2856,7 +2857,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "indexmap",
   "serde_core",
-@@ -3027,7 +3956,7 @@ dependencies = [
+@@ -3027,7 +3957,7 @@ dependencies = [
   "toml_datetime 1.1.1+spec-1.1.0",
   "toml_parser",
   "toml_writer",
@@ -2865,7 +2866,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3064,23 +3993,23 @@ dependencies = [
+@@ -3064,23 +3994,23 @@ dependencies = [
  
  [[package]]
  name = "toml_edit"
@@ -2895,7 +2896,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3091,9 +4020,9 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+@@ -3091,9 +4021,9 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
  
  [[package]]
  name = "toml_writer"
@@ -2907,7 +2908,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "tracing"
-@@ -3114,7 +4043,7 @@ checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
+@@ -3114,7 +4044,7 @@ checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -2916,7 +2917,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3126,11 +4055,22 @@ dependencies = [
+@@ -3126,11 +4056,22 @@ dependencies = [
   "once_cell",
  ]
  
@@ -2941,7 +2942,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "tz-rs"
-@@ -3151,9 +4091,9 @@ dependencies = [
+@@ -3151,9 +4092,9 @@ dependencies = [
  
  [[package]]
  name = "tzdb_data"
@@ -2953,7 +2954,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "tz-rs",
  ]
-@@ -3175,6 +4115,12 @@ version = "1.0.24"
+@@ -3175,6 +4116,12 @@ version = "1.0.24"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
  
@@ -2966,7 +2967,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "unicode-xid"
  version = "0.2.6"
-@@ -3223,9 +4169,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+@@ -3223,9 +4170,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
  
  [[package]]
  name = "uuid"
@@ -2978,7 +2979,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "js-sys",
   "serde_core",
-@@ -3238,6 +4184,12 @@ version = "0.2.15"
+@@ -3238,6 +4185,12 @@ version = "0.2.15"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
  
@@ -2991,7 +2992,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "version-compare"
  version = "0.2.1"
-@@ -3266,29 +4218,11 @@ version = "0.11.1+wasi-snapshot-preview1"
+@@ -3266,29 +4219,11 @@ version = "0.11.1+wasi-snapshot-preview1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
  
@@ -3023,7 +3024,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "cfg-if",
   "once_cell",
-@@ -3299,9 +4233,9 @@ dependencies = [
+@@ -3299,9 +4234,9 @@ dependencies = [
  
  [[package]]
  name = "wasm-bindgen-macro"
@@ -3035,7 +3036,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "quote",
   "wasm-bindgen-macro-support",
-@@ -3309,65 +4243,31 @@ dependencies = [
+@@ -3309,65 +4244,31 @@ dependencies = [
  
  [[package]]
  name = "wasm-bindgen-macro-support"
@@ -3108,7 +3109,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "cc",
   "downcast-rs",
-@@ -3378,11 +4278,11 @@ dependencies = [
+@@ -3378,11 +4279,11 @@ dependencies = [
  
  [[package]]
  name = "wayland-client"
@@ -3123,7 +3124,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "rustix",
   "wayland-backend",
   "wayland-scanner",
-@@ -3390,11 +4290,11 @@ dependencies = [
+@@ -3390,11 +4291,11 @@ dependencies = [
  
  [[package]]
  name = "wayland-protocols"
@@ -3138,7 +3139,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "wayland-backend",
   "wayland-client",
   "wayland-scanner",
-@@ -3406,7 +4306,7 @@ version = "0.3.12"
+@@ -3406,7 +4307,7 @@ version = "0.3.12"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "6e9567599ef23e09b8dad6e429e5738d4509dfc46b3b21f32841a304d16b29c8"
  dependencies = [
@@ -3147,7 +3148,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "wayland-backend",
   "wayland-client",
   "wayland-protocols",
-@@ -3419,7 +4319,7 @@ version = "0.3.12"
+@@ -3419,7 +4320,7 @@ version = "0.3.12"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "eb04e52f7836d7c7976c78ca0250d61e33873c34156a2a1fc9474828ec268234"
  dependencies = [
@@ -3156,7 +3157,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "wayland-backend",
   "wayland-client",
   "wayland-protocols",
-@@ -3428,9 +4328,9 @@ dependencies = [
+@@ -3428,9 +4329,9 @@ dependencies = [
  
  [[package]]
  name = "wayland-scanner"
@@ -3168,7 +3169,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "proc-macro2",
   "quick-xml",
-@@ -3497,7 +4397,7 @@ dependencies = [
+@@ -3497,7 +4398,7 @@ dependencies = [
   "lazy_static",
   "libc",
   "log",
@@ -3177,7 +3178,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "portable-atomic",
   "rand",
   "thiserror 1.0.69",
-@@ -3505,6 +4405,12 @@ dependencies = [
+@@ -3505,6 +4406,12 @@ dependencies = [
   "winapi",
  ]
  
@@ -3190,7 +3191,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "winapi"
  version = "0.3.9"
-@@ -3542,11 +4448,23 @@ version = "0.61.3"
+@@ -3542,11 +4449,23 @@ version = "0.61.3"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "9babd3a767a4c1aef6900409f85f5d53ce2544ccdfaa86dad48c91782c6d6893"
  dependencies = [
@@ -3217,7 +3218,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3558,6 +4476,15 @@ dependencies = [
+@@ -3558,6 +4477,15 @@ dependencies = [
   "windows-core 0.61.2",
  ]
  
@@ -3233,7 +3234,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "windows-core"
  version = "0.61.2"
-@@ -3592,7 +4519,18 @@ checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
+@@ -3592,7 +4520,18 @@ checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
  dependencies = [
   "windows-core 0.61.2",
   "windows-link 0.1.3",
@@ -3253,7 +3254,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3603,7 +4541,7 @@ checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
+@@ -3603,7 +4542,7 @@ checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -3262,7 +3263,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3614,7 +4552,7 @@ checksum = "3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358"
+@@ -3614,7 +4553,7 @@ checksum = "3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -3271,7 +3272,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  ]
  
  [[package]]
-@@ -3639,6 +4577,16 @@ dependencies = [
+@@ -3639,6 +4578,16 @@ dependencies = [
   "windows-link 0.1.3",
  ]
  
@@ -3288,7 +3289,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "windows-result"
  version = "0.3.4"
-@@ -3753,6 +4701,15 @@ dependencies = [
+@@ -3753,6 +4702,15 @@ dependencies = [
   "windows-link 0.1.3",
  ]
  
@@ -3304,7 +3305,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "windows_aarch64_gnullvm"
  version = "0.52.6"
-@@ -3860,116 +4817,63 @@ dependencies = [
+@@ -3860,116 +4818,63 @@ dependencies = [
  
  [[package]]
  name = "winnow"
@@ -3453,7 +3454,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  
  [[package]]
  name = "x25519-dalek"
-@@ -3993,13 +4897,19 @@ dependencies = [
+@@ -3993,13 +4898,19 @@ dependencies = [
   "data-encoding",
   "der-parser",
   "lazy_static",
@@ -3474,7 +3475,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  [[package]]
  name = "yasna"
  version = "0.5.2"
-@@ -4011,9 +4921,9 @@ dependencies = [
+@@ -4011,9 +4922,9 @@ dependencies = [
  
  [[package]]
  name = "yoke"
@@ -3486,7 +3487,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "stable_deref_trait",
   "yoke-derive",
-@@ -4028,15 +4938,15 @@ checksum = "de844c262c8848816172cef550288e7dc6c7b7814b4ee56b3e1553f275f1858e"
+@@ -4028,15 +4939,15 @@ checksum = "de844c262c8848816172cef550288e7dc6c7b7814b4ee56b3e1553f275f1858e"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -3505,7 +3506,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "async-broadcast",
   "async-recursion",
-@@ -4056,7 +4966,7 @@ dependencies = [
+@@ -4056,7 +4967,7 @@ dependencies = [
   "uds_windows",
   "uuid",
   "windows-sys 0.61.2",
@@ -3514,7 +3515,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "zbus_macros",
   "zbus_names",
   "zvariant",
-@@ -4064,14 +4974,14 @@ dependencies = [
+@@ -4064,14 +4975,14 @@ dependencies = [
  
  [[package]]
  name = "zbus_macros"
@@ -3532,7 +3533,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
   "zbus_names",
   "zvariant",
   "zvariant_utils",
-@@ -4079,40 +4989,49 @@ dependencies = [
+@@ -4079,40 +4990,49 @@ dependencies = [
  
  [[package]]
  name = "zbus_names"
@@ -3592,7 +3593,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "zerofrom-derive",
  ]
-@@ -4125,35 +5044,35 @@ checksum = "11532158c46691caf0f2593ea8358fed6bbf68a0315e80aae9bd41fbade684a1"
+@@ -4125,35 +5045,35 @@ checksum = "11532158c46691caf0f2593ea8358fed6bbf68a0315e80aae9bd41fbade684a1"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -3636,7 +3637,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "displaydoc",
   "yoke",
-@@ -4162,9 +5081,9 @@ dependencies = [
+@@ -4162,9 +5082,9 @@ dependencies = [
  
  [[package]]
  name = "zerovec"
@@ -3648,7 +3649,7 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
  dependencies = [
   "yoke",
   "zerofrom",
-@@ -4173,57 +5092,79 @@ dependencies = [
+@@ -4173,57 +5093,79 @@ dependencies = [
  
  [[package]]
  name = "zerovec-derive"
@@ -3744,10 +3745,10 @@ index a39d1d0b4fa8ec1291418ce3e7a511e68bb0c118..185d504c57f3260049b04062a8ae6acd
 + "winnow 1.0.4",
  ]
 diff --git a/Cargo.toml b/Cargo.toml
-index f6cd2cc5c569cea3f5be2c8c056bd03cbf5a47df..78fb4ee29ca6de28697517300dd3087d1757452a 100644
+index f6cd2cc5c569cea3f5be2c8c056bd03cbf5a47df..40b5121f894ff06de78c3d120e991904b8c80009 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -67,6 +67,11 @@ rustls = { version = "0.23.12", default-features = false, features = [
+@@ -67,10 +67,18 @@ rustls = { version = "0.23.12", default-features = false, features = [
  rcgen = "0.13.1"
  sha2 = "0.10.8"
  notify = "8.2.0"
@@ -3759,6 +3760,40 @@ index f6cd2cc5c569cea3f5be2c8c056bd03cbf5a47df..78fb4ee29ca6de28697517300dd3087d
  
  [target.'cfg(unix)'.dependencies]
  libc = "0.2.148"
+ 
++[dev-dependencies]
++async-trait = "0.1"
++
+ [features]
+ default = [
+     "gtk",
+diff --git a/DOC.md b/DOC.md
+index e38f04d827324bd43cdc2f3d7bf7fab837d92a2e..cae98e989cd2d97907431b4270a4f6195cc33c48 100644
+--- a/DOC.md
++++ b/DOC.md
+@@ -51,6 +51,22 @@ sequenceDiagram
+     Bob-->>-Alice: Ack (Keyboard Layout)
+ ```
+ 
++## Network recovery
++
++An outgoing connection is retired when sending, receiving, or its heartbeat
++fails. Its receive and heartbeat operations stop together, and shutdown has a
++bounded wait even when the network is unavailable. The next input event can
++start a fresh connection to the configured peer.
++
++For suspend/resume diagnostics, capture logs with `LAN_MOUSE_LOG_LEVEL=debug`
++before suspending. After the network returns, check both input directions and,
++on builds with clipboard support, copy fresh text after reconnecting. A capture
++or emulation backend shown as disabled requires separate backend diagnostics.
++
++Each listener on the custom stack owns the connections accepted on its local
++address. Interface removal, port changes, and shutdown retire those connections
++before releasing or rebinding the listener; other interfaces remain available.
++
+ ## Problems
+ The general Idea is to have a bidirectional connection by default, meaning
+ any connected device can not only receive events but also send events back.
 diff --git a/README.md b/README.md
 index e9ca39acd2767c94493882fe3f9cad5093372257..425650312dcb2e8bb0436a99b6a87e34fa1430af 100644
 --- a/README.md
@@ -14101,10 +14136,10 @@ index 55369e5abbc7c0a0ef49ff892f541362f2350ed1..f05f5fc2822a5cff9ee3f6de366de642
 +    }
 +}
 diff --git a/src/connect.rs b/src/connect.rs
-index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb7cb2feac 100644
+index 417d9137db11eec116c7cfd06af1d4d140e10522..369122688511d7dfaf7f54ac62eb161d34502153 100644
 --- a/src/connect.rs
 +++ b/src/connect.rs
-@@ -1,16 +1,20 @@
+@@ -1,23 +1,28 @@
  use crate::client::ClientManager;
  use crate::config::local_commit;
 +use crate::discovery::{PrimaryCache, normalize_mdns_name};
@@ -14115,23 +14150,63 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +};
  use local_channel::mpsc::{Receiver, Sender, channel};
  use std::{
-     cell::RefCell,
+-    cell::RefCell,
++    cell::{Cell, RefCell},
      collections::{HashMap, HashSet},
 +    hash::{DefaultHasher, Hash, Hasher},
      io,
 -    net::SocketAddr,
+-    rc::Rc,
 +    net::{IpAddr, SocketAddr},
-     rc::Rc,
++    rc::{Rc, Weak},
      sync::Arc,
 -    time::Duration,
 +    time::{Duration, Instant},
  };
  use thiserror::Error;
  use tokio::{
-@@ -43,6 +47,58 @@ pub(crate) enum LanMouseConnectionError {
+     net::UdpSocket,
+     sync::Mutex,
+-    task::{JoinSet, spawn_local},
++    task::{JoinHandle, JoinSet, spawn_local},
+ };
++use tokio_util::sync::CancellationToken;
+ use webrtc_dtls::{
+     config::{Config, ExtendedMasterSecretType},
+     conn::DTLSConn,
+@@ -42,6 +47,86 @@ pub(crate) enum LanMouseConnectionError {
+ }
  
  const DEFAULT_CONNECTION_TIMEOUT: Duration = Duration::from_secs(5);
- 
++const CONNECTION_CLOSE_TIMEOUT: Duration = Duration::from_secs(1);
++
++type ArcConn = Arc<dyn Conn + Send + Sync>;
++type Connections = Rc<Mutex<HashMap<SocketAddr, Connection>>>;
++type WeakConnections = Weak<Mutex<HashMap<SocketAddr, Connection>>>;
++
++struct Connection {
++    conn: ArcConn,
++    cancellation: CancellationToken,
++    task: Option<JoinHandle<()>>,
++}
++
++impl Connection {
++    async fn shutdown(mut self) {
++        self.cancellation.cancel();
++        if let Some(task) = self.task.take() {
++            if let Err(e) = task.await {
++                log::warn!("connection task: {e}");
++            }
++        }
++    }
++}
++
++impl Drop for Connection {
++    fn drop(&mut self) {
++        self.cancellation.cancel();
++    }
++}
++
 +/// Initial backoff between connect attempts that find no usable address
 +/// (no static IPs, no DNS-resolved IPs, no mDNS primary hint). Doubles
 +/// on each subsequent failure up to [`MAX_RETRY_BACKOFF`]. The backoff
@@ -14183,11 +14258,10 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +    entry.next_attempt_at = Instant::now() + next;
 +    entry.backoff = (next * 2).min(MAX_RETRY_BACKOFF);
 +}
-+
+ 
  async fn connect(
      addr: SocketAddr,
-     cert: Certificate,
-@@ -71,12 +127,43 @@ async fn connect(
+@@ -71,12 +156,43 @@ async fn connect(
      }
  }
  
@@ -14231,10 +14305,16 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
          joinset.spawn_local(connect(addr, cert.clone()));
      }
      loop {
-@@ -100,10 +187,26 @@ pub(crate) struct LanMouseConnection {
+@@ -95,15 +211,30 @@ async fn connect_any(
+ pub(crate) struct LanMouseConnection {
+     cert: Certificate,
+     client_manager: ClientManager,
+-    conns: Rc<Mutex<HashMap<SocketAddr, Arc<dyn Conn + Send + Sync>>>>,
++    conns: Connections,
+     connecting: Rc<Mutex<HashSet<ClientHandle>>>,
      recv_rx: Receiver<(ClientHandle, ProtoEvent)>,
      recv_tx: Sender<(ClientHandle, ProtoEvent)>,
-     ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
+-    ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
 +    /// Map of `peer_hostname -> primary_ipv4` populated by the
 +    /// `Discovery` mDNS browse task. Read on every `connect_to_handle`
 +    /// to bias which address gets the handshake head-start. Empty
@@ -14259,16 +14339,17 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
          let (recv_tx, recv_rx) = channel();
          Self {
              cert,
-@@ -113,6 +216,8 @@ impl LanMouseConnection {
+@@ -112,7 +243,8 @@ impl LanMouseConnection {
+             connecting: Default::default(),
              recv_rx,
              recv_tx,
-             ping_response: Default::default(),
+-            ping_response: Default::default(),
 +            primary_hints,
 +            retry_state: Default::default(),
          }
      }
  
-@@ -120,13 +225,55 @@ impl LanMouseConnection {
+@@ -120,17 +252,58 @@ impl LanMouseConnection {
          self.recv_rx.recv().await.expect("channel closed")
      }
  
@@ -14286,7 +14367,6 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +            connecting: self.connecting.clone(),
 +            recv_rx: dead_rx,
 +            recv_tx: self.recv_tx.clone(),
-+            ping_response: self.ping_response.clone(),
 +            primary_hints: self.primary_hints.clone(),
 +            retry_state: self.retry_state.clone(),
 +        }
@@ -14326,8 +14406,22 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
          if let Some(addr) = self.client_manager.active_addr(handle) {
              let conn = {
                  let conns = self.conns.lock().await;
-@@ -143,14 +290,14 @@ impl LanMouseConnection {
-                         disconnect(&self.client_manager, handle, addr, &self.conns).await;
+-                conns.get(&addr).cloned()
++                conns.get(&addr).map(|session| session.conn.clone())
+             };
+             if let Some(conn) = conn {
+                 if !self.client_manager.alive(handle) {
+@@ -140,17 +313,22 @@ impl LanMouseConnection {
+                     Ok(_) => {}
+                     Err(e) => {
+                         log::warn!("client {handle} failed to send: {e}");
+-                        disconnect(&self.client_manager, handle, addr, &self.conns).await;
++                        if let Some(session) =
++                            disconnect(&self.client_manager, handle, addr, &conn, &self.conns).await
++                        {
++                            session.shutdown().await;
++                        }
++                        return Err(e.into());
                      }
                  }
 -                log::trace!("{event} >->->->->- {addr}");
@@ -14343,10 +14437,11 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
              connecting.insert(handle);
              // connect in the background
              spawn_local(connect_to_handle(
-@@ -161,12 +308,44 @@ impl LanMouseConnection {
+@@ -160,81 +338,180 @@ impl LanMouseConnection {
+                 self.conns.clone(),
                  self.connecting.clone(),
                  self.recv_tx.clone(),
-                 self.ping_response.clone(),
+-                self.ping_response.clone(),
 +                self.primary_hints.clone(),
 +                self.retry_state.clone(),
              ));
@@ -14388,10 +14483,12 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
  async fn connect_to_handle(
      client_manager: ClientManager,
      cert: Certificate,
-@@ -175,20 +354,43 @@ async fn connect_to_handle(
+     handle: ClientHandle,
+-    conns: Rc<Mutex<HashMap<SocketAddr, Arc<dyn Conn + Send + Sync>>>>,
++    conns: Connections,
      connecting: Rc<Mutex<HashSet<ClientHandle>>>,
      tx: Sender<(ClientHandle, ProtoEvent)>,
-     ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
+-    ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
 +    primary_hints: PrimaryCache,
 +    retry_state: Rc<RefCell<HashMap<ClientHandle, RetryState>>>,
  ) -> Result<(), LanMouseConnectionError> {
@@ -14437,17 +14534,163 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
                  connecting.lock().await.remove(&handle);
                  return Err(e);
              }
-@@ -197,6 +399,7 @@ async fn connect_to_handle(
-         client_manager.set_active_addr(handle, Some(addr));
-         conns.lock().await.insert(addr, conn.clone());
+         };
+         log::info!("client ({handle}) connected @ {addr}");
+-        client_manager.set_active_addr(handle, Some(addr));
+-        conns.lock().await.insert(addr, conn.clone());
++        start_connection(&client_manager, handle, addr, conn, &conns, tx).await;
          connecting.lock().await.remove(&handle);
 +        retry_state.borrow_mut().remove(&handle);
  
-         // Best-effort version handshake. Send our commit hash once
-         // immediately after the DTLS handshake; the listen side
-@@ -267,34 +470,60 @@ async fn receive_loop(
+-        // Best-effort version handshake. Send our commit hash once
+-        // immediately after the DTLS handshake; the listen side
+-        // mirrors a Hello back so the receive loop can populate
+-        // `peer_commit`. Old peers will silently skip this event
+-        // per the forward-compat handler in [`receive_loop`].
+-        let (buf, len) = ProtoEvent::Hello {
+-            commit: local_commit(),
+-        }
+-        .into();
+-        if let Err(e) = conn.send(&buf[..len]).await {
+-            log::debug!("hello send to {addr} failed: {e}");
+-        }
+-
+-        // poll connection for active
+-        spawn_local(ping_pong(addr, conn.clone(), ping_response.clone()));
+-
+-        // receiver
+-        spawn_local(receive_loop(
+-            client_manager,
+-            handle,
+-            addr,
+-            conn,
+-            conns,
+-            tx,
+-            ping_response.clone(),
+-        ));
+         return Ok(());
+     }
+     connecting.lock().await.remove(&handle);
+     Err(LanMouseConnectionError::NotConnected)
+ }
+ 
+-async fn ping_pong(
++async fn start_connection(
++    client_manager: &ClientManager,
++    handle: ClientHandle,
+     addr: SocketAddr,
+-    conn: Arc<dyn Conn + Send + Sync>,
+-    ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
++    conn: ArcConn,
++    conns: &Connections,
++    tx: Sender<(ClientHandle, ProtoEvent)>,
+ ) {
++    let cancellation = CancellationToken::new();
++    let mut connections = conns.lock().await;
++    let task = spawn_local(run_connection(
++        client_manager.clone(),
++        handle,
++        addr,
++        conn.clone(),
++        Rc::downgrade(conns),
++        tx,
++        cancellation.clone(),
++    ));
++    let previous = connections.insert(
++        addr,
++        Connection {
++            conn,
++            cancellation,
++            task: Some(task),
++        },
++    );
++    client_manager.set_active_addr(handle, Some(addr));
++    client_manager.set_alive(handle, false);
++    client_manager.set_peer_commit(handle, None);
++    drop(connections);
++    if let Some(previous) = previous {
++        previous.shutdown().await;
++    }
++}
++
++async fn run_connection(
++    client_manager: ClientManager,
++    handle: ClientHandle,
++    addr: SocketAddr,
++    conn: ArcConn,
++    conns: WeakConnections,
++    tx: Sender<(ClientHandle, ProtoEvent)>,
++    cancellation: CancellationToken,
++) {
++    // One owner polls both futures. Ending either drops the other, even when
++    // DTLS close fails to wake recv during a network outage.
++    let ping_response = Cell::new(false);
++    tokio::select! {
++        _ = cancellation.cancelled() => {},
++        _ = async {
++            let (buf, len) = ProtoEvent::Hello { commit: local_commit() }.into();
++            match tokio::time::timeout(DEFAULT_CONNECTION_TIMEOUT, conn.send(&buf[..len])).await {
++                Ok(Ok(_)) => {},
++                Ok(Err(e)) => log::debug!("hello send to {addr} failed: {e}"),
++                Err(_) => log::debug!("hello send to {addr} timed out"),
++            }
++            tokio::select! {
++                _ = ping_pong(addr, &conn, &ping_response) => {},
++                _ = receive_loop(&client_manager, handle, addr, &conn, &conns, tx, &ping_response) => {},
++            }
++        } => {},
++    }
++
++    if let Some(conns) = conns.upgrade() {
++        drop(disconnect(&client_manager, handle, addr, &conn, &conns).await);
++    }
++    // Retirement must not depend on successfully sending CloseNotify. Dropping
++    // the final DTLS reference also stops its internal reader after close errors.
++    match tokio::time::timeout(CONNECTION_CLOSE_TIMEOUT, conn.close()).await {
++        Ok(Ok(())) => {}
++        Ok(Err(e)) => log::debug!("closing connection to {addr}: {e}"),
++        Err(_) => log::warn!("closing connection to {addr} timed out"),
++    }
++}
++
++async fn ping_pong(addr: SocketAddr, conn: &ArcConn, ping_response: &Cell<bool>) {
+     loop {
+         let (buf, len) = ProtoEvent::Ping.into();
+ 
+@@ -242,69 +519,453 @@ async fn ping_pong(
+         for _ in 0..4 {
+             if let Err(e) = conn.send(&buf[..len]).await {
+                 log::warn!("{addr}: send error `{e}`, closing connection");
+-                let _ = conn.close().await;
+-                break;
++                return;
+             }
+             log::trace!("PING >->->->->- {addr}");
+ 
+             tokio::time::sleep(Duration::from_millis(500)).await;
+         }
+ 
+-        if !ping_response.borrow_mut().remove(&addr) {
++        if !ping_response.replace(false) {
+             log::warn!("{addr} did not respond, closing connection");
+-            let _ = conn.close().await;
+             return;
+         }
+     }
+ }
+ 
+ async fn receive_loop(
+-    client_manager: ClientManager,
++    client_manager: &ClientManager,
+     handle: ClientHandle,
+     addr: SocketAddr,
+-    conn: Arc<dyn Conn + Send + Sync>,
+-    conns: Rc<Mutex<HashMap<SocketAddr, Arc<dyn Conn + Send + Sync>>>>,
++    conn: &ArcConn,
++    conns: &WeakConnections,
      tx: Sender<(ClientHandle, ProtoEvent)>,
-     ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
+-    ping_response: Rc<RefCell<HashSet<SocketAddr>>>,
++    ping_response: &Cell<bool>,
  ) {
 -    let mut buf = [0u8; MAX_EVENT_SIZE];
 -    while conn.recv(&mut buf).await.is_ok() {
@@ -14472,6 +14715,17 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +    // unused for those datagrams.
 +    let mut buf = [0u8; MAX_CLIPBOARD_SIZE];
 +    while let Ok(n) = conn.recv(&mut buf).await {
++        let Some(conns) = conns.upgrade() else {
++            return;
++        };
++        if !conns
++            .lock()
++            .await
++            .get(&addr)
++            .is_some_and(|session| Arc::ptr_eq(&session.conn, conn))
++        {
++            return;
++        }
 +        if n == 0 {
 +            continue;
 +        }
@@ -14493,18 +14747,22 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +            ProtoEvent::Pong(b) => {
 +                client_manager.set_active_addr(handle, Some(addr));
 +                client_manager.set_alive(handle, b);
-+                ping_response.borrow_mut().insert(addr);
++                ping_response.set(true);
 +            }
 +            ProtoEvent::Hello { commit } => {
 +                client_manager.set_peer_commit(handle, Some(commit));
 +            }
-+            event => tx.send((handle, event)).expect("channel closed"),
++            event => {
++                if tx.send((handle, event)).is_err() {
++                    return;
++                }
++            }
          }
      }
      log::warn!("recv error");
-     disconnect(&client_manager, handle, addr, &conns).await;
- }
- 
+-    disconnect(&client_manager, handle, addr, &conns).await;
++}
++
 +/// Classify the first byte of a DTLS datagram and dispatch through
 +/// either the variable-length clipboard codec or the fixed-buffer
 +/// `try_into` path. Returns `None` on any decode failure (bad tag,
@@ -14519,11 +14777,373 @@ index 417d9137db11eec116c7cfd06af1d4d140e10522..9149be98e3c75078c751992c1d2a0dbb
 +    let copy_len = bytes.len().min(MAX_EVENT_SIZE);
 +    fixed[..copy_len].copy_from_slice(&bytes[..copy_len]);
 +    fixed.try_into().ok()
-+}
-+
+ }
+ 
  async fn disconnect(
      client_manager: &ClientManager,
      handle: ClientHandle,
+     addr: SocketAddr,
+-    conns: &Mutex<HashMap<SocketAddr, Arc<dyn Conn + Send + Sync>>>,
+-) {
++    expected: &ArcConn,
++    conns: &Connections,
++) -> Option<Connection> {
++    let mut conns = conns.lock().await;
++    if !conns
++        .get(&addr)
++        .is_some_and(|session| Arc::ptr_eq(&session.conn, expected))
++    {
++        return None;
++    }
+     log::warn!("client ({handle}) @ {addr} connection closed");
+-    conns.lock().await.remove(&addr);
+-    client_manager.set_active_addr(handle, None);
+-    client_manager.set_peer_commit(handle, None);
+-    let active: Vec<SocketAddr> = conns.lock().await.keys().copied().collect();
++    let session = conns.remove(&addr);
++    if client_manager.active_addr(handle) == Some(addr) {
++        client_manager.set_active_addr(handle, None);
++        client_manager.set_alive(handle, false);
++        client_manager.set_peer_commit(handle, None);
++    }
++    let active: Vec<SocketAddr> = conns.keys().copied().collect();
+     log::info!("active connections: {active:?}");
++    session
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use async_trait::async_trait;
++    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
++    use tokio::{sync::mpsc, task::LocalSet, time::timeout};
++
++    type Packet = Result<Vec<u8>, ()>;
++
++    #[derive(Clone, Copy)]
++    enum CloseMode {
++        Ok,
++        Error,
++        Pending,
++    }
++
++    struct TestConn {
++        incoming: Mutex<mpsc::UnboundedReceiver<Packet>>,
++        fail_send: Arc<AtomicBool>,
++        sends: Arc<AtomicUsize>,
++        closes: Arc<AtomicUsize>,
++        close_mode: CloseMode,
++    }
++
++    impl TestConn {
++        fn new(close_mode: CloseMode) -> (Arc<Self>, mpsc::UnboundedSender<Packet>) {
++            let (tx, rx) = mpsc::unbounded_channel();
++            (
++                Arc::new(Self {
++                    incoming: Mutex::new(rx),
++                    fail_send: Default::default(),
++                    sends: Default::default(),
++                    closes: Default::default(),
++                    close_mode,
++                }),
++                tx,
++            )
++        }
++    }
++
++    #[async_trait]
++    impl Conn for TestConn {
++        async fn connect(&self, _: SocketAddr) -> Result<(), webrtc_util::Error> {
++            Ok(())
++        }
++
++        async fn recv(&self, buf: &mut [u8]) -> Result<usize, webrtc_util::Error> {
++            match self.incoming.lock().await.recv().await {
++                Some(Ok(packet)) => {
++                    buf[..packet.len()].copy_from_slice(&packet);
++                    Ok(packet.len())
++                }
++                _ => Err(webrtc_util::Error::Other("injected receive error".into())),
++            }
++        }
++
++        async fn recv_from(
++            &self,
++            buf: &mut [u8],
++        ) -> Result<(usize, SocketAddr), webrtc_util::Error> {
++            self.recv(buf).await.map(|n| (n, addr()))
++        }
++
++        async fn send(&self, buf: &[u8]) -> Result<usize, webrtc_util::Error> {
++            self.sends.fetch_add(1, Ordering::SeqCst);
++            if self.fail_send.load(Ordering::SeqCst) {
++                Err(webrtc_util::Error::Other("injected send error".into()))
++            } else {
++                Ok(buf.len())
++            }
++        }
++
++        async fn send_to(&self, buf: &[u8], _: SocketAddr) -> Result<usize, webrtc_util::Error> {
++            self.send(buf).await
++        }
++
++        fn local_addr(&self) -> Result<SocketAddr, webrtc_util::Error> {
++            Ok(addr())
++        }
++
++        fn remote_addr(&self) -> Option<SocketAddr> {
++            Some(addr())
++        }
++
++        async fn close(&self) -> Result<(), webrtc_util::Error> {
++            self.closes.fetch_add(1, Ordering::SeqCst);
++            // Neither error nor success wakes recv. This models the DTLS
++            // CloseNotify failure instead of assuming close ends every reader.
++            match self.close_mode {
++                CloseMode::Ok => Ok(()),
++                CloseMode::Error => Err(webrtc_util::Error::Other("injected close error".into())),
++                CloseMode::Pending => std::future::pending().await,
++            }
++        }
++
++        fn as_any(&self) -> &(dyn std::any::Any + Send + Sync) {
++            self
++        }
++    }
++
++    fn addr() -> SocketAddr {
++        "127.0.0.1:4242".parse().unwrap()
++    }
++
++    fn dialer() -> (LanMouseConnection, ClientManager, ClientHandle) {
++        let clients = ClientManager::default();
++        let handle = clients.add_client();
++        let cert = Certificate::generate_self_signed(vec!["localhost".into()]).unwrap();
++        (
++            LanMouseConnection::new(cert, clients.clone(), Default::default()),
++            clients,
++            handle,
++        )
++    }
++
++    async fn wait_until(mut ready: impl FnMut() -> bool) {
++        timeout(Duration::from_secs(4), async {
++            while !ready() {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .expect("connection lifecycle did not finish");
++    }
++
++    fn packet(event: ProtoEvent) -> Packet {
++        let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = event.into();
++        Ok(buf[..len].to_vec())
++    }
++
++    #[tokio::test]
++    async fn receive_error_releases_connection_even_when_close_fails() {
++        LocalSet::new()
++            .run_until(async {
++                let (dialer, clients, handle) = dialer();
++                let (conn, tx) = TestConn::new(CloseMode::Error);
++                let weak = Arc::downgrade(&conn);
++                let closes = conn.closes.clone();
++                start_connection(
++                    &clients,
++                    handle,
++                    addr(),
++                    conn,
++                    &dialer.conns,
++                    dialer.recv_tx.clone(),
++                )
++                .await;
++                clients.set_alive(handle, true);
++                clients.set_peer_commit(handle, Some(*b"oldbuild"));
++                tx.send(Err(())).unwrap();
++                wait_until(|| weak.upgrade().is_none()).await;
++                assert!(dialer.conns.lock().await.is_empty());
++                assert_eq!(clients.active_addr(handle), None);
++                assert!(!clients.alive(handle));
++                assert_eq!(clients.get_state(handle).unwrap().1.peer_commit, None);
++                assert_eq!(closes.load(Ordering::SeqCst), 1);
++            })
++            .await;
++    }
++
++    #[tokio::test]
++    async fn send_error_clears_state_before_bounded_shutdown_finishes() {
++        LocalSet::new()
++            .run_until(async {
++                let (dialer, clients, handle) = dialer();
++                let (conn, _tx) = TestConn::new(CloseMode::Pending);
++                let weak = Arc::downgrade(&conn);
++                let fail_send = conn.fail_send.clone();
++                let sends = conn.sends.clone();
++                start_connection(
++                    &clients,
++                    handle,
++                    addr(),
++                    conn,
++                    &dialer.conns,
++                    dialer.recv_tx.clone(),
++                )
++                .await;
++                // Wait for Hello and the first heartbeat, then fail a user send
++                // while the heartbeat is sleeping and recv remains blocked.
++                wait_until(|| sends.load(Ordering::SeqCst) >= 2).await;
++                clients.set_alive(handle, true);
++                clients.set_peer_commit(handle, Some(*b"oldbuild"));
++                fail_send.store(true, Ordering::SeqCst);
++                let send = spawn_local(async move { dialer.send(ProtoEvent::Ping, handle).await });
++                wait_until(|| clients.active_addr(handle).is_none()).await;
++                assert!(!clients.alive(handle));
++                assert_eq!(clients.get_state(handle).unwrap().1.peer_commit, None);
++                assert!(!send.is_finished());
++                assert!(
++                    timeout(Duration::from_secs(2), send)
++                        .await
++                        .unwrap()
++                        .unwrap()
++                        .is_err()
++                );
++                assert!(weak.upgrade().is_none());
++            })
++            .await;
++    }
++
++    #[tokio::test]
++    async fn heartbeat_timeout_retires_without_another_input_event() {
++        LocalSet::new()
++            .run_until(async {
++                let (dialer, clients, handle) = dialer();
++                let (conn, _tx) = TestConn::new(CloseMode::Error);
++                let weak = Arc::downgrade(&conn);
++                start_connection(
++                    &clients,
++                    handle,
++                    addr(),
++                    conn,
++                    &dialer.conns,
++                    dialer.recv_tx.clone(),
++                )
++                .await;
++                clients.set_alive(handle, true);
++                wait_until(|| weak.upgrade().is_none()).await;
++                assert_eq!(clients.active_addr(handle), None);
++                assert!(!clients.alive(handle));
++                assert!(dialer.conns.lock().await.is_empty());
++            })
++            .await;
++    }
++
++    #[tokio::test]
++    async fn stale_cleanup_and_pong_cannot_change_replacement() {
++        LocalSet::new()
++            .run_until(async {
++                let (mut dialer, clients, handle) = dialer();
++                let (old, old_tx) = TestConn::new(CloseMode::Error);
++                let old: ArcConn = old;
++                start_connection(&clients, handle, addr(), old.clone(), &dialer.conns, dialer.recv_tx.clone()).await;
++                let (new, new_tx) = TestConn::new(CloseMode::Ok);
++                let new: ArcConn = new;
++                start_connection(&clients, handle, addr(), new.clone(), &dialer.conns, dialer.recv_tx.clone()).await;
++                new_tx.send(packet(ProtoEvent::Pong(true))).unwrap();
++                new_tx.send(packet(ProtoEvent::Hello { commit: *b"newbuild" })).unwrap();
++                wait_until(|| clients.get_state(handle).unwrap().1.peer_commit == Some(*b"newbuild")).await;
++
++                assert!(disconnect(&clients, handle, addr(), &old, &dialer.conns).await.is_none());
++                old_tx.send(packet(ProtoEvent::Pong(false))).unwrap();
++                timeout(Duration::from_secs(1), receive_loop(&clients, handle, addr(), &old, &Rc::downgrade(&dialer.conns), dialer.recv_tx.clone(), &Cell::new(false))).await.unwrap();
++                assert_eq!(clients.active_addr(handle), Some(addr()));
++                assert!(clients.alive(handle));
++                assert_eq!(clients.get_state(handle).unwrap().1.peer_commit, Some(*b"newbuild"));
++                assert!(Arc::ptr_eq(&dialer.conns.lock().await[&addr()].conn, &new));
++
++                new_tx.send(packet(ProtoEvent::Ack(0))).unwrap();
++                assert!(matches!(timeout(Duration::from_secs(1), dialer.recv()).await.unwrap(), (h, ProtoEvent::Ack(0)) if h == handle));
++                disconnect(&clients, handle, addr(), &new, &dialer.conns).await.unwrap().shutdown().await;
++            })
++            .await;
++    }
++
++    #[tokio::test]
++    async fn reconnects_after_peer_closes_connection() {
++        LocalSet::new()
++            .run_until(async {
++                use webrtc_util::conn::Listener;
++
++                let (dialer, clients, handle) = dialer();
++                let listener = webrtc_dtls::listener::listen(
++                    "127.0.0.1:0",
++                    Config {
++                        certificates: vec![
++                            Certificate::generate_self_signed(vec!["localhost".into()]).unwrap(),
++                        ],
++                        extended_master_secret: ExtendedMasterSecretType::Require,
++                        ..Default::default()
++                    },
++                )
++                .await
++                .unwrap();
++                clients.set_fix_ips(handle, vec!["127.0.0.1".parse().unwrap()]);
++                clients.set_port(handle, listener.addr().await.unwrap().port());
++                for _ in 0..3 {
++                    assert!(matches!(
++                        dialer.send(ProtoEvent::Ping, handle).await,
++                        Err(LanMouseConnectionError::NotConnected)
++                    ));
++                    let (peer, _) = timeout(Duration::from_secs(3), listener.accept())
++                        .await
++                        .unwrap()
++                        .unwrap();
++                    let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = ProtoEvent::Pong(true).into();
++                    peer.send(&buf[..len]).await.unwrap();
++                    wait_until(|| clients.alive(handle)).await;
++                    dialer.send(ProtoEvent::Ack(0), handle).await.unwrap();
++                    timeout(Duration::from_secs(1), async {
++                        loop {
++                            let mut buf = [0u8; MAX_EVENT_SIZE];
++                            peer.recv(&mut buf).await.unwrap();
++                            if matches!(ProtoEvent::try_from(buf), Ok(ProtoEvent::Ack(0))) {
++                                break;
++                            }
++                        }
++                    })
++                    .await
++                    .unwrap();
++                    peer.close().await.unwrap();
++                    wait_until(|| clients.active_addr(handle).is_none()).await;
++                    assert!(!clients.alive(handle));
++                    assert!(dialer.conns.lock().await.is_empty());
++                }
++                listener.close().await.unwrap();
++            })
++            .await;
++    }
++
++    #[tokio::test]
++    async fn dropping_owner_cancels_blocked_receiver() {
++        LocalSet::new()
++            .run_until(async {
++                let (dialer, clients, handle) = dialer();
++                let (conn, _tx) = TestConn::new(CloseMode::Error);
++                let weak = Arc::downgrade(&conn);
++                start_connection(
++                    &clients,
++                    handle,
++                    addr(),
++                    conn,
++                    &dialer.conns,
++                    dialer.recv_tx.clone(),
++                )
++                .await;
++                drop(dialer);
++                wait_until(|| weak.upgrade().is_none()).await;
++            })
++            .await;
++    }
+ }
 diff --git a/src/discovery.rs b/src/discovery.rs
 new file mode 100644
 index 0000000000000000000000000000000000000000..26e2a25972324bb06efb8fa971286fb75c3c5f19
@@ -14859,12 +15479,13 @@ index 0000000000000000000000000000000000000000..26e2a25972324bb06efb8fa971286fb7
 +    }))
 +}
 diff --git a/src/emulation.rs b/src/emulation.rs
-index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c16144a2ed90 100644
+index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..ff6b3bd82b102a4384d982d6f7c9820ac58e68ab 100644
 --- a/src/emulation.rs
 +++ b/src/emulation.rs
 @@ -1,8 +1,11 @@
  use crate::config::local_commit;
- use crate::listen::{LanMouseListener, ListenEvent, ListenerCreationError};
+-use crate::listen::{LanMouseListener, ListenEvent, ListenerCreationError};
++use crate::listen::{LanMouseListener, ListenEvent, ListenerCreationError, SessionId};
  use futures::StreamExt;
 -use input_emulation::{EmulationHandle, InputEmulation, InputEmulationError};
 -use input_event::Event;
@@ -14924,16 +15545,17 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
      Terminate,
  }
  
-@@ -86,6 +117,8 @@ impl Emulation {
+@@ -86,6 +117,9 @@ impl Emulation {
              emulation_proxy,
              request_rx,
              event_tx,
 +            addr_to_fingerprint: HashMap::new(),
++            sessions: HashMap::new(),
 +            incoming_peers: HashMap::new(),
          };
          let task = spawn_local(emulation_task.run());
          Self {
-@@ -113,6 +146,16 @@ impl Emulation {
+@@ -113,6 +147,16 @@ impl Emulation {
              .expect("channel closed")
      }
  
@@ -14950,7 +15572,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
      pub(crate) async fn event(&mut self) -> EmulationEvent {
          self.event_rx.recv().await.expect("channel closed")
      }
-@@ -134,9 +177,25 @@ struct ListenTask {
+@@ -134,9 +178,26 @@ struct ListenTask {
      emulation_proxy: EmulationProxy,
      request_rx: Receiver<EmulationRequest>,
      event_tx: Sender<EmulationEvent>,
@@ -14962,6 +15584,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
 +    /// and on `SetIncomingPeers` to build the per-handle
 +    /// `ReceivePostProcessing` snapshots that go into InputEmulation.
 +    incoming_peers: HashMap<String, IncomingPeerConfig>,
++    sessions: HashMap<SocketAddr, SessionId>,
  }
  
  impl ListenTask {
@@ -14976,7 +15599,20 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
      async fn run(mut self) {
          let mut interval = tokio::time::interval(Duration::from_secs(5));
          let mut last_response = HashMap::new();
-@@ -153,6 +212,44 @@ impl ListenTask {
+@@ -144,7 +205,11 @@ impl ListenTask {
+         loop {
+             select! {
+                 e = self.listener.next() => {match e {
+-                    Some(ListenEvent::Msg { event, addr }) => {
++                    Some(ListenEvent::Msg { event, addr, session }) => {
++                        if self.sessions.get(&addr) != Some(&session)
++                            || !self.listener.is_current_session(addr, session) {
++                            continue;
++                        }
+                         log::trace!("{event} <-<-<-<-<- {addr}");
+                         last_response.insert(addr, Instant::now());
+                         match event {
+@@ -153,6 +218,44 @@ impl ListenTask {
                                      log::info!("releasing capture: {addr} entered this device");
                                      self.event_tx.send(EmulationEvent::ReleaseNotify).expect("channel closed");
                                      self.listener.reply(addr, ProtoEvent::Ack(0)).await;
@@ -15021,7 +15657,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                                      self.event_tx.send(EmulationEvent::Entered{addr, pos: to_ipc_pos(pos), fingerprint}).expect("channel closed");
                                  }
                              }
-@@ -161,6 +258,40 @@ impl ListenTask {
+@@ -161,6 +264,40 @@ impl ListenTask {
                                  self.listener.reply(addr, ProtoEvent::Ack(0)).await;
                              }
                              ProtoEvent::Input(event) => self.emulation_proxy.consume(event, addr),
@@ -15062,7 +15698,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                              ProtoEvent::Ping => self.listener.reply(addr, ProtoEvent::Pong(self.emulation_proxy.emulation_active.get())).await,
                              // Peer's version handshake. Echo our own
                              // commit back so the peer's connect-side
-@@ -177,10 +308,53 @@ impl ListenTask {
+@@ -177,12 +314,70 @@ impl ListenTask {
                                  self.listener.reply(addr, ProtoEvent::Hello { commit: local_commit() }).await;
                                  self.event_tx.send(EmulationEvent::PeerHello { addr, commit }).expect("channel closed");
                              }
@@ -15106,7 +15742,17 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                              _ => {}
                          }
                      }
-                     Some(ListenEvent::Accept { addr, fingerprint }) => {
+-                    Some(ListenEvent::Accept { addr, fingerprint }) => {
++                    Some(ListenEvent::Accept { addr, fingerprint, session }) => {
++                        // Port teardown may retire a session while its Accept is
++                        // still queued. Do not recreate a handle for that session.
++                        if !self.listener.is_current_session(addr, session) {
++                            continue;
++                        }
++                        if self.sessions.insert(addr, session).is_some() {
++                            self.emulation_proxy.remove(addr);
++                            last_response.remove(&addr);
++                        }
 +                        self.addr_to_fingerprint.insert(addr, fingerprint.clone());
 +                        // Pre-cache the per-handle post-processing so
 +                        // EmulationTask can pick it up the moment the
@@ -15115,8 +15761,28 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
 +                        self.emulation_proxy.set_post_processing(addr, pp);
                          self.event_tx.send(EmulationEvent::Connected { addr, fingerprint }).expect("channel closed");
                      }
++                    Some(ListenEvent::Disconnected { addr, session }) => {
++                        if disconnect_session(addr, session, &mut self.sessions,
++                            &mut self.addr_to_fingerprint, &self.emulation_proxy, &self.event_tx) {
++                            last_response.remove(&addr);
++                        }
++                    }
                      Some(ListenEvent::Rejected { fingerprint }) => {
-@@ -204,6 +378,25 @@ impl ListenTask {
+                         if rejected_connections.insert(fingerprint.clone(), Instant::now())
+                             .is_none_or(|i| i.elapsed() >= Duration::from_secs(2)) {
+@@ -200,10 +395,37 @@ impl ListenTask {
+                     // notify the other end that we hit a barrier (should release capture)
+                     EmulationRequest::Release(addr) => self.listener.reply(addr, ProtoEvent::Leave(0)).await,
+                     EmulationRequest::ChangePort(port) => {
++                        // The port-change acknowledgement waits for bounded network
++                        // teardown. Release active handles before that await.
++                        for (addr, _) in self.sessions.drain() {
++                            self.emulation_proxy.remove(addr);
++                            self.event_tx.send(EmulationEvent::Disconnected { addr }).expect("channel closed");
++                        }
++                        last_response.clear();
++                        self.addr_to_fingerprint.clear();
+                         self.listener.request_port_change(port);
                          let result = self.listener.port_changed().await;
                          self.event_tx.send(EmulationEvent::PortChanged(result)).expect("channel closed");
                      }
@@ -15142,7 +15808,36 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                      EmulationRequest::Terminate => break,
                  },
                  _ = interval.tick() => {
-@@ -233,6 +426,11 @@ pub(crate) struct EmulationProxy {
+@@ -225,6 +447,28 @@ impl ListenTask {
+     }
+ }
+ 
++/// A disconnect belongs to one DTLS session, even when a replacement or an
++/// unaffected local binding uses the same remote SocketAddr.
++fn disconnect_session(
++    addr: SocketAddr,
++    session: SessionId,
++    sessions: &mut HashMap<SocketAddr, SessionId>,
++    fingerprints: &mut HashMap<SocketAddr, String>,
++    proxy: &EmulationProxy,
++    events: &Sender<EmulationEvent>,
++) -> bool {
++    if sessions.get(&addr) != Some(&session) {
++        return false;
++    }
++    sessions.remove(&addr);
++    fingerprints.remove(&addr);
++    proxy.remove(addr);
++    events
++        .send(EmulationEvent::Disconnected { addr })
++        .expect("channel closed");
++    true
++}
++
+ /// proxy handling the actual input emulation,
+ /// discarding events when it is disabled
+ pub(crate) struct EmulationProxy {
+@@ -233,6 +477,11 @@ pub(crate) struct EmulationProxy {
      request_tx: Sender<ProxyRequest>,
      event_rx: Receiver<EmulationEvent>,
      task: JoinHandle<()>,
@@ -15154,7 +15849,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
  }
  
  enum ProxyRequest {
-@@ -240,6 +438,16 @@ enum ProxyRequest {
+@@ -240,6 +489,16 @@ enum ProxyRequest {
      Remove(SocketAddr),
      Terminate,
      Reenable,
@@ -15171,7 +15866,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
  }
  
  impl EmulationProxy {
-@@ -248,9 +456,12 @@ impl EmulationProxy {
+@@ -248,9 +507,12 @@ impl EmulationProxy {
          let (event_tx, event_rx) = channel();
          let emulation_active = Rc::new(Cell::new(false));
          let exit_requested = Rc::new(Cell::new(false));
@@ -15184,7 +15879,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
              request_rx,
              event_tx,
              handles: Default::default(),
-@@ -263,9 +474,40 @@ impl EmulationProxy {
+@@ -263,9 +525,40 @@ impl EmulationProxy {
              request_tx,
              task,
              event_rx,
@@ -15225,7 +15920,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
      async fn event(&mut self) -> EmulationEvent {
          let event = self.event_rx.recv().await.expect("channel closed");
          if let EmulationEvent::EmulationEnabled = event {
-@@ -310,6 +552,15 @@ impl EmulationProxy {
+@@ -310,6 +603,15 @@ impl EmulationProxy {
  struct EmulationTask {
      backend: Option<input_emulation::Backend>,
      exit_requested: Rc<Cell<bool>>,
@@ -15241,7 +15936,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
      request_rx: Receiver<ProxyRequest>,
      event_tx: Sender<EmulationEvent>,
      handles: HashMap<SocketAddr, EmulationHandle>,
-@@ -332,6 +583,13 @@ impl EmulationTask {
+@@ -332,6 +634,13 @@ impl EmulationTask {
                      ProxyRequest::Terminate => return,
                      ProxyRequest::Input(..) => { /* emulation inactive => ignore */ }
                      ProxyRequest::Remove(..) => { /* emulation inactive => ignore */ }
@@ -15255,7 +15950,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                  }
              }
          }
-@@ -345,6 +603,21 @@ impl EmulationTask {
+@@ -345,6 +654,21 @@ impl EmulationTask {
              _ = wait_for_termination(&mut self.request_rx) => return Ok(()),
          };
  
@@ -15277,7 +15972,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
          // used to send enabled and disabled events
          let _emulation_guard = DropGuard::new(
              self.event_tx.clone(),
-@@ -392,6 +665,12 @@ impl EmulationTask {
+@@ -392,6 +716,12 @@ impl EmulationTask {
                                  self.next_id += 1;
                                  emulation.create(handle).await;
                                  self.handles.insert(addr, handle);
@@ -15290,7 +15985,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                                  handle
                              }
                          };
-@@ -401,6 +680,31 @@ impl EmulationTask {
+@@ -401,6 +731,31 @@ impl EmulationTask {
                          if let Some(handle) = self.handles.remove(&addr) {
                              emulation.destroy(handle).await;
                          }
@@ -15322,7 +16017,7 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
                      }
                      ProxyRequest::Terminate => break Ok(()),
                      ProxyRequest::Reenable => continue,
-@@ -419,12 +723,21 @@ fn to_ipc_pos(pos: Position) -> lan_mouse_ipc::Position {
+@@ -419,12 +774,21 @@ fn to_ipc_pos(pos: Position) -> lan_mouse_ipc::Position {
      }
  }
  
@@ -15344,6 +16039,49 @@ index 923bf99dd9e03886dd04ab71980bd173e1f95e7c..9e92774706dd306c30b2972f62e0c161
              ProxyRequest::Reenable => continue,
          }
      }
+@@ -450,3 +814,42 @@ impl<T> Drop for DropGuard<T> {
+             .expect("channel closed");
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn disconnect_releases_current_handle_and_preserves_replacement() {
++        tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap()
++            .block_on(tokio::task::LocalSet::new().run_until(async {
++                let (request_tx, mut requests) = channel();
++                let (_, event_rx) = channel();
++                let proxy = EmulationProxy {
++                    emulation_active: Rc::new(Cell::new(true)),
++                    exit_requested: Rc::new(Cell::new(false)),
++                    request_tx, event_rx,
++                    task: spawn_local(std::future::pending()),
++                    display_bounds: Rc::new(Cell::new(None)),
++                };
++                let (events, mut event_rx) = channel();
++                let addr = "127.0.0.1:5555".parse().unwrap();
++                let old = SessionId::new();
++                let current = SessionId::new();
++                let mut sessions = HashMap::from([(addr, current)]);
++                let mut fingerprints = HashMap::from([(addr, "current".to_owned())]);
++                assert!(!disconnect_session(addr, old, &mut sessions, &mut fingerprints, &proxy, &events));
++                assert_eq!(sessions.get(&addr), Some(&current));
++                assert_eq!(fingerprints.get(&addr).unwrap(), "current");
++                assert!(tokio::time::timeout(Duration::from_millis(10), requests.recv()).await.is_err());
++                assert!(disconnect_session(addr, current, &mut sessions, &mut fingerprints, &proxy, &events));
++                assert!(matches!(requests.recv().await, Some(ProxyRequest::Remove(a)) if a == addr));
++                assert!(matches!(event_rx.recv().await, Some(EmulationEvent::Disconnected { addr: a }) if a == addr));
++                assert!(sessions.is_empty());
++                assert!(fingerprints.is_empty());
++                // Duplicate/stale cleanup cannot remove a newly-created handle.
++                assert!(!disconnect_session(addr, current, &mut sessions, &mut fingerprints, &proxy, &events));
++                proxy.task.abort();
++            }));
++    }
++}
 diff --git a/src/lib.rs b/src/lib.rs
 index ae9c66e5ccf3a2ac02a66dff268fca310aecb1ff..ac7dee844dd3ce6ed581b68c217f373160609e95 100644
 --- a/src/lib.rs
@@ -15363,12 +16101,13 @@ index ae9c66e5ccf3a2ac02a66dff268fca310aecb1ff..ac7dee844dd3ce6ed581b68c217f3731
 +pub mod macos_tcc_watch;
  pub mod service;
 diff --git a/src/listen.rs b/src/listen.rs
-index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7a7a39cef 100644
+index e0a94751015e3380355be55299f95f8daa4bf339..d6c65ce20a603afac28fdf10a6c165a788bec5f2 100644
 --- a/src/listen.rs
 +++ b/src/listen.rs
-@@ -1,15 +1,17 @@
- use futures::{Stream, StreamExt};
+@@ -1,19 +1,22 @@
+-use futures::{Stream, StreamExt};
 -use lan_mouse_proto::{MAX_EVENT_SIZE, ProtoEvent};
++use futures::{Stream, StreamExt, future::join_all};
 +use lan_mouse_ipc::IncomingPeerConfig;
 +use lan_mouse_proto::{MAX_CLIPBOARD_SIZE, MAX_EVENT_SIZE, ProtoEvent, decode_clipboard_event};
  use local_channel::mpsc::{Receiver, Sender, channel};
@@ -15376,18 +16115,28 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
  use std::{
 -    collections::{HashMap, VecDeque},
 -    net::SocketAddr,
++    cell::RefCell,
 +    collections::{HashMap, HashSet, VecDeque},
 +    net::{IpAddr, SocketAddr},
      rc::Rc,
-     sync::{Arc, Mutex, RwLock},
+-    sync::{Arc, Mutex, RwLock},
++    sync::{
++        Arc, Mutex, RwLock,
++        atomic::{AtomicU64, Ordering},
++    },
      time::Duration,
  };
  use thiserror::Error;
+-use tokio::{
+-    sync::Mutex as AsyncMutex,
+-    task::{JoinHandle, spawn_local},
+-};
++use tokio::task::{JoinHandle, spawn_local};
 +use tokio::time::MissedTickBehavior;
- use tokio::{
-     sync::Mutex as AsyncMutex,
-     task::{JoinHandle, spawn_local},
-@@ -30,9 +32,12 @@ pub enum ListenerCreationError {
+ use webrtc_dtls::{
+     config::{ClientAuthType::RequireAnyClientCert, Config, ExtendedMasterSecretType},
+     conn::DTLSConn,
+@@ -30,18 +33,57 @@ pub enum ListenerCreationError {
      WebrtcUtil(#[from] webrtc_util::Error),
      #[error(transparent)]
      WebrtcDtls(#[from] webrtc_dtls::Error),
@@ -15396,28 +16145,150 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
  }
  
  type ArcConn = Arc<dyn Conn + Send + Sync>;
-+type DynListener = Box<dyn Listener + Send + Sync>;
++type DynListener = Arc<dyn Listener + Send + Sync>;
++type Connections = Rc<RefCell<Vec<RegisteredConnection>>>;
++type Sessions = Rc<RefCell<HashMap<SessionId, AcceptedConnection>>>;
++const CLOSE_TIMEOUT: Duration = Duration::from_secs(1);
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
++pub(crate) struct SessionId(u64);
++
++impl SessionId {
++    pub(crate) fn new() -> Self {
++        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
++        Self(NEXT_ID.fetch_add(1, Ordering::Relaxed))
++    }
++}
++
++struct RegisteredConnection {
++    addr: SocketAddr,
++    session: SessionId,
++    conn: ArcConn,
++}
++
++struct AcceptedConnection {
++    addr: SocketAddr,
++    conn: ArcConn,
++    read_task: Option<JoinHandle<()>>,
++}
++
++enum ListenerRequest {
++    ChangePort(u16),
++    Terminate,
++}
  
  pub(crate) enum ListenEvent {
      Msg {
-@@ -63,14 +68,31 @@ type VerifyPeerCertificateFn = Arc<
+         event: ProtoEvent,
+         addr: SocketAddr,
++        session: SessionId,
+     },
+     Accept {
+         addr: SocketAddr,
+         fingerprint: String,
++        session: SessionId,
++    },
++    Disconnected {
++        addr: SocketAddr,
++        session: SessionId,
+     },
+     Rejected {
+         fingerprint: String,
+@@ -52,8 +94,8 @@ pub(crate) struct LanMouseListener {
+     listen_rx: Receiver<ListenEvent>,
+     listen_tx: Sender<ListenEvent>,
+     listen_task: JoinHandle<()>,
+-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
+-    request_port_change: Sender<u16>,
++    conns: Connections,
++    request_port_change: Sender<ListenerRequest>,
+     port_changed: Receiver<Result<u16, ListenerCreationError>>,
+ }
+ 
+@@ -63,14 +105,97 @@ type VerifyPeerCertificateFn = Arc<
          + Sync,
  >;
  
-+/// One bound DTLS listener and the task that accepts on it. Stored
-+/// in a `HashMap<IpAddr, ListenerSlot>` keyed by the local IPv4
-+/// address it's bound to so the supervisor can plug/unplug
-+/// listeners as interfaces appear/disappear.
++/// Owns every connection accepted on one local binding. Teardown must finish
++/// before the supervisor can bind that address again.
 +struct ListenerSlot {
-+    /// Background task that calls `listener.accept()` in a loop and
-+    /// forwards events into the shared `listen_tx` / `conns`.
-+    /// Aborted on `Drop` so dropping the supervisor cleans up.
-+    accept_task: JoinHandle<()>,
++    listener: Option<DynListener>,
++    accept_task: Option<JoinHandle<()>>,
++    sessions: Sessions,
++    conns: Connections,
++    listen_tx: Sender<ListenEvent>,
 +}
 +
++impl ListenerSlot {
++    async fn shutdown(mut self, conns: &Connections, listen_tx: &Sender<ListenEvent>) {
++        let mut accept_task = self.accept_task.take().expect("accept task");
++        accept_task.abort();
++        let _ = (&mut accept_task).await;
++        let sessions: Vec<_> = self.sessions.borrow_mut().drain().collect();
++        // Retire identities before any network await; queued events from these
++        // readers must not release keys belonging to a newer session.
++        for (session, accepted) in &sessions {
++            retire_connection(conns, *session, accepted.addr, listen_tx);
++            if let Some(task) = &accepted.read_task {
++                task.abort();
++            }
++        }
++        join_all(sessions.into_iter().map(|(_, mut accepted)| async move {
++            if let Some(task) = accepted.read_task.take() {
++                let _ = task.await;
++            }
++            close_connection(&accepted.conn).await;
++            // Drop even after a failed/timed-out close. DTLSConn's sender drop
++            // stops its internal reader, including the close-notify error path.
++        }))
++        .await;
++        let listener = self.listener.take().expect("listener");
++        match tokio::time::timeout(CLOSE_TIMEOUT, listener.close()).await {
++            Ok(Ok(())) => {}
++            Ok(Err(e)) => log::debug!("listener close failed: {e}"),
++            Err(_) => log::warn!("listener close timed out"),
++        }
++        drop(listener);
++        // webrtc-util's UDP reader is detached; let its close notification run
++        // after the last accepted connection and listener references are gone.
++        tokio::task::yield_now().await;
++    }
++}
++
++// Normal removals use shutdown() and await task completion. Keep cancellation
++// on Drop as a fallback if the supervisor itself is unexpectedly cancelled.
 +impl Drop for ListenerSlot {
 +    fn drop(&mut self) {
-+        self.accept_task.abort();
++        if let Some(task) = &self.accept_task {
++            task.abort();
++        }
++        for (session, accepted) in self.sessions.borrow_mut().drain() {
++            retire_connection(&self.conns, session, accepted.addr, &self.listen_tx);
++            if let Some(task) = accepted.read_task {
++                task.abort();
++            }
++        }
++    }
++}
++
++async fn close_connection(conn: &ArcConn) {
++    match tokio::time::timeout(CLOSE_TIMEOUT, conn.close()).await {
++        Ok(Ok(())) => {}
++        Ok(Err(e)) => log::debug!("dtls close failed: {e}"),
++        Err(_) => log::warn!("dtls close timed out"),
++    }
++}
++
++fn retire_connection(
++    conns: &Connections,
++    session: SessionId,
++    addr: SocketAddr,
++    listen_tx: &Sender<ListenEvent>,
++) {
++    let mut conns = conns.borrow_mut();
++    if let Some(index) = conns.iter().position(|c| c.session == session) {
++        conns.remove(index);
++        let _ = listen_tx.send(ListenEvent::Disconnected { addr, session });
 +    }
 +}
 +
@@ -15434,15 +16305,16 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
          let (port_changed_tx, port_changed) = channel();
          let connection_attempts: Arc<Mutex<VecDeque<String>>> = Default::default();
  
-@@ -109,72 +131,72 @@ impl LanMouseListener {
+@@ -109,72 +234,71 @@ impl LanMouseListener {
              ..Default::default()
          };
  
 -        let listen_addr = SocketAddr::new("0.0.0.0".parse().expect("invalid ip"), port);
 -        let mut listener = listen(listen_addr, cfg.clone()).await?;
 -
-         let conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>> =
-             Rc::new(AsyncMutex::new(Vec::new()));
+-        let conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>> =
+-            Rc::new(AsyncMutex::new(Vec::new()));
++        let conns: Connections = Rc::new(RefCell::new(Vec::new()));
  
 -        let conns_clone = conns.clone();
 -        let listen_task: JoinHandle<()> = {
@@ -15520,13 +16392,13 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +        for ip in &initial_addrs {
 +            match try_bind_listener(*ip, port, &cfg).await {
 +                Ok(listener) => {
-+                    let task = spawn_accept_task(
++                    let slot = spawn_accept_task(
 +                        listener,
 +                        listen_tx.clone(),
 +                        conns.clone(),
 +                        connection_attempts.clone(),
 +                    );
-+                    listeners.insert(*ip, ListenerSlot { accept_task: task });
++                    listeners.insert(*ip, slot);
 +                    bound_count += 1;
 +                    log::info!("listening for DTLS on {ip}:{port}");
                  }
@@ -15541,13 +16413,13 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +            let fallback = IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
 +            match try_bind_listener(fallback, port, &cfg).await {
 +                Ok(listener) => {
-+                    let task = spawn_accept_task(
++                    let slot = spawn_accept_task(
 +                        listener,
 +                        listen_tx.clone(),
 +                        conns.clone(),
 +                        connection_attempts.clone(),
 +                    );
-+                    listeners.insert(fallback, ListenerSlot { accept_task: task });
++                    listeners.insert(fallback, slot);
 +                    log::info!(
 +                        "listening for DTLS on {fallback}:{port} (fallback — symmetric replies not guaranteed)"
 +                    );
@@ -15569,7 +16441,79 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
  
          Ok(Self {
              conns,
-@@ -245,20 +267,289 @@ impl Stream for LanMouseListener {
+@@ -187,7 +311,9 @@ impl LanMouseListener {
+     }
+ 
+     pub(crate) fn request_port_change(&mut self, port: u16) {
+-        self.request_port_change.send(port).expect("channel closed");
++        self.request_port_change
++            .send(ListenerRequest::ChangePort(port))
++            .expect("channel closed");
+     }
+ 
+     pub(crate) async fn port_changed(&mut self) -> Result<u16, ListenerCreationError> {
+@@ -195,34 +321,44 @@ impl LanMouseListener {
+     }
+ 
+     pub(crate) async fn terminate(&mut self) {
+-        self.listen_task.abort();
+-        let conns = self.conns.lock().await;
+-        for (_, conn) in conns.iter() {
+-            let _ = conn.close().await;
+-        }
++        let _ = self.request_port_change.send(ListenerRequest::Terminate);
++        let _ = (&mut self.listen_task).await;
+         self.listen_tx.close();
+     }
+ 
++    pub(crate) fn is_current_session(&self, addr: SocketAddr, session: SessionId) -> bool {
++        self.conns
++            .borrow()
++            .iter()
++            .rev()
++            .find(|c| c.addr == addr)
++            .is_some_and(|c| c.session == session)
++    }
++
+     pub(crate) async fn reply(&self, addr: SocketAddr, event: ProtoEvent) {
+         log::trace!("reply {event} >=>=>=>=>=> {addr}");
+         let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = event.into();
+-        let conns = self.conns.lock().await;
+-        for (a, conn) in conns.iter() {
+-            if *a == addr {
+-                let _ = conn.send(&buf[..len]).await;
+-            }
++        let conn = self
++            .conns
++            .borrow()
++            .iter()
++            .rev()
++            .find(|c| c.addr == addr)
++            .map(|c| c.conn.clone());
++        if let Some(conn) = conn {
++            let _ = conn.send(&buf[..len]).await;
+         }
+     }
+ 
+     pub(crate) async fn get_certificate_fingerprint(&self, addr: SocketAddr) -> Option<String> {
+-        if let Some(conn) = self
++        let conn = self
+             .conns
+-            .lock()
+-            .await
++            .borrow()
+             .iter()
+-            .find(|(a, _)| *a == addr)
+-            .map(|(_, c)| c.clone())
+-        {
++            .rev()
++            .find(|c| c.addr == addr)
++            .map(|c| c.conn.clone());
++        if let Some(conn) = conn {
+             let conn: &DTLSConn = conn.as_any().downcast_ref().expect("dtls conn");
+             let certs = conn.connection_state().await.peer_certificates;
+             let cert = certs.first()?;
+@@ -245,20 +381,335 @@ impl Stream for LanMouseListener {
      }
  }
  
@@ -15604,7 +16548,7 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +) -> Result<DynListener, ListenerCreationError> {
 +    let addr = SocketAddr::new(ip, port);
 +    let listener = listen(addr, cfg.clone()).await?;
-+    Ok(Box::new(listener))
++    Ok(Arc::new(listener))
 +}
 +
 +/// Spawn an accept loop for one bound listener. Each accepted
@@ -15613,33 +16557,45 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +/// re-published as `Rejected` so the UI can surface unauthorized
 +/// fingerprints. The accept loop exits when the listener errors
 +/// out or its task is aborted (interface went down, port changed).
++/// The returned slot owns every accepted connection and reader.
 +fn spawn_accept_task(
 +    listener: DynListener,
 +    listen_tx: Sender<ListenEvent>,
-+    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
++    conns: Connections,
 +    connection_attempts: Arc<Mutex<VecDeque<String>>>,
-+) -> JoinHandle<()> {
-+    spawn_local(async move {
++) -> ListenerSlot {
++    let sessions: Sessions = Rc::new(RefCell::new(HashMap::new()));
++    let accept_sessions = sessions.clone();
++    let accept_listener = listener.clone();
++    let slot_conns = conns.clone();
++    let slot_listen_tx = listen_tx.clone();
++    let accept_task = spawn_local(async move {
 +        loop {
 +            // workaround for https://github.com/webrtc-rs/webrtc/issues/614
 +            let sleep = tokio::time::sleep(Duration::from_secs(2));
 +            tokio::select! {
 +                _ = sleep => continue,
-+                c = listener.accept() => match c {
++                c = accept_listener.accept() => match c {
 +                    Ok((conn, addr)) => {
 +                        log::info!("dtls client connected, ip: {addr}");
-+                        {
-+                            let mut conns_guard = conns.lock().await;
-+                            conns_guard.push((addr, conn.clone()));
-+                        }
++                        let session = SessionId::new();
++                        // Record ownership immediately, before certificate lookup can
++                        // yield and the accept task can be cancelled.
++                        accept_sessions.borrow_mut().insert(session, AcceptedConnection {
++                            addr, conn: conn.clone(), read_task: None,
++                        });
 +                        let dtls_conn: &DTLSConn = conn.as_any().downcast_ref().expect("dtls conn");
 +                        let certs = dtls_conn.connection_state().await.peer_certificates;
 +                        let cert = certs.first().expect("cert");
 +                        let fingerprint = crypto::generate_fingerprint(cert);
-+                        listen_tx
-+                            .send(ListenEvent::Accept { addr, fingerprint })
-+                            .expect("channel closed");
-+                        spawn_local(read_loop(conns.clone(), addr, conn, listen_tx.clone()));
++                        conns.borrow_mut().push(RegisteredConnection {
++                            addr, session, conn: conn.clone(),
++                        });
++                        let _ = listen_tx.send(ListenEvent::Accept { addr, fingerprint, session });
++                        let task = spawn_local(read_loop(
++                            conns.clone(), accept_sessions.clone(), session, addr, conn, listen_tx.clone(),
++                        ));
++                        accept_sessions.borrow_mut().get_mut(&session).expect("accepted session").read_task = Some(task);
 +                    }
 +                    Err(e) => {
 +                        if let Error::Std(ref se) = e {
@@ -15666,23 +16622,30 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                },
 +            };
 +        }
-+    })
++    });
++    ListenerSlot {
++        listener: Some(listener),
++        accept_task: Some(accept_task),
++        sessions,
++        conns: slot_conns,
++        listen_tx: slot_listen_tx,
++    }
 +}
 +
 +/// Supervisor task: owns the set of active listeners, watches for
 +/// interface up/down events via `if_watch`, and rebuilds listeners
 +/// on port change. Each listener slot is keyed by its local IPv4
 +/// address; on `IfEvent::Up` we add a slot, on `IfEvent::Down` we
-+/// drop one (which aborts its accept task).
++/// completely shut down that binding before any replacement is created.
 +#[allow(clippy::too_many_arguments)]
 +fn spawn_supervisor_task(
 +    initial_port: u16,
 +    cfg: Config,
 +    initial_listeners: HashMap<IpAddr, ListenerSlot>,
 +    listen_tx: Sender<ListenEvent>,
-+    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
++    conns: Connections,
 +    connection_attempts: Arc<Mutex<VecDeque<String>>>,
-+    mut request_port_change_rx: Receiver<u16>,
++    mut request_port_change_rx: Receiver<ListenerRequest>,
 +    port_changed_tx: Sender<Result<u16, ListenerCreationError>>,
 +) -> JoinHandle<()> {
 +    spawn_local(async move {
@@ -15726,7 +16689,9 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                        // `to_drop` was just collected from
 +                        // `listeners.keys()` and we run single-
 +                        // threaded, so the remove always returns Some.
-+                        listeners.remove(&ip);
++                        if let Some(slot) = listeners.remove(&ip) {
++                            slot.shutdown(&conns, &listen_tx).await;
++                        }
 +                        log::info!(
 +                            "reconcile: dropping stale listener on {ip}:{port} \
 +                             (IP no longer present on any interface)"
@@ -15744,13 +16709,13 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                        {
 +                            match try_bind_listener(ip, port, &cfg).await {
 +                                Ok(l) => {
-+                                    let task = spawn_accept_task(
++                                    let listener_slot = spawn_accept_task(
 +                                        l,
 +                                        listen_tx.clone(),
 +                                        conns.clone(),
 +                                        connection_attempts.clone(),
 +                                    );
-+                                    slot.insert(ListenerSlot { accept_task: task });
++                                    slot.insert(listener_slot);
 +                                    log::info!(
 +                                        "reconcile: now listening on {ip}:{port} \
 +                                         (IP appeared without an Up event)"
@@ -15779,13 +16744,13 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                        if usable && !listeners.contains_key(&ip) {
 +                            match try_bind_listener(ip, port, &cfg).await {
 +                                Ok(l) => {
-+                                    let task = spawn_accept_task(
++                                    let listener_slot = spawn_accept_task(
 +                                        l,
 +                                        listen_tx.clone(),
 +                                        conns.clone(),
 +                                        connection_attempts.clone(),
 +                                    );
-+                                    listeners.insert(ip, ListenerSlot { accept_task: task });
++                                    listeners.insert(ip, listener_slot);
 +                                    log::info!("interface up: now listening on {ip}:{port}");
 +                                }
 +                                Err(e) => log::warn!("failed to bind on {ip}:{port}: {e}"),
@@ -15794,27 +16759,31 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                    }
 +                    Ok(if_watch::IfEvent::Down(net)) => {
 +                        let ip = net.addr();
-+                        if listeners.remove(&ip).is_some() {
++                        if let Some(slot) = listeners.remove(&ip) {
++                            slot.shutdown(&conns, &listen_tx).await;
 +                            log::info!("interface down: stopped listening on {ip}:{port}");
 +                        }
 +                    }
 +                    Err(e) => log::debug!("if_watch error: {e}"),
 +                },
 +                p = request_port_change_rx.recv() => {
-+                    let new_port = p.expect("channel closed");
-+                    listeners.clear(); // Drop aborts each accept task
++                    let new_port = match p {
++                        Some(ListenerRequest::ChangePort(port)) => port,
++                        Some(ListenerRequest::Terminate) | None => break,
++                    };
++                    shutdown_listeners(&mut listeners, &conns, &listen_tx).await;
 +                    let mut bound = 0usize;
 +                    let addrs = enumerate_listenable_ipv4();
 +                    for ip in &addrs {
 +                        match try_bind_listener(*ip, new_port, &cfg).await {
 +                            Ok(l) => {
-+                                let task = spawn_accept_task(
++                                let slot = spawn_accept_task(
 +                                    l,
 +                                    listen_tx.clone(),
 +                                    conns.clone(),
 +                                    connection_attempts.clone(),
 +                                );
-+                                listeners.insert(*ip, ListenerSlot { accept_task: task });
++                                listeners.insert(*ip, slot);
 +                                bound += 1;
 +                            }
 +                            Err(e) => log::warn!("port change: failed to bind {ip}:{new_port}: {e}"),
@@ -15833,16 +16802,35 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +                }
 +            }
 +        }
++        shutdown_listeners(&mut listeners, &conns, &listen_tx).await;
 +    })
 +}
 +
++async fn shutdown_listeners(
++    listeners: &mut HashMap<IpAddr, ListenerSlot>,
++    conns: &Connections,
++    listen_tx: &Sender<ListenEvent>,
++) {
++    let slots: Vec<_> = listeners.drain().map(|(_, slot)| slot).collect();
++    join_all(
++        slots
++            .into_iter()
++            .map(|slot| slot.shutdown(conns, listen_tx)),
++    )
++    .await;
++}
++
  async fn read_loop(
-     conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
+-    conns: Rc<AsyncMutex<Vec<(SocketAddr, ArcConn)>>>,
++    conns: Connections,
++    sessions: Sessions,
++    session: SessionId,
      addr: SocketAddr,
      conn: ArcConn,
      dtls_tx: Sender<ListenEvent>,
- ) -> Result<(), Error> {
+-) -> Result<(), Error> {
 -    let mut b = [0u8; MAX_EVENT_SIZE];
++) {
 +    // Buffer sized for the largest legal clipboard frame; mouse /
 +    // keyboard datagrams use only the first MAX_EVENT_SIZE bytes.
 +    let mut b = [0u8; MAX_CLIPBOARD_SIZE];
@@ -15850,6 +16838,7 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 -    while conn.recv(&mut b).await.is_ok() {
 -        match b.try_into() {
 -            Ok(event) => dtls_tx
+-                .send(ListenEvent::Msg { event, addr })
 +    while let Ok(n) = conn.recv(&mut b).await {
 +        if n == 0 {
 +            continue;
@@ -15857,14 +16846,18 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +        let datagram = &b[..n];
 +        match decode_listen_datagram(datagram) {
 +            Some(event) => dtls_tx
-                 .send(ListenEvent::Msg { event, addr })
++                .send(ListenEvent::Msg {
++                    event,
++                    addr,
++                    session,
++                })
                  .expect("channel closed"),
 -            Err(e) => {
 +            None => {
                  // Skip the malformed/unknown datagram and keep
                  // listening. Each DTLS recv returns one full
                  // datagram, so a parse error here can't desync a
-@@ -268,7 +559,7 @@ async fn read_loop(
+@@ -268,16 +719,322 @@ async fn read_loop(
                  // version can introduce additional event types
                  // and old peers will simply ignore them rather
                  // than dropping the connection.
@@ -15873,10 +16866,18 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
              }
          }
      }
-@@ -281,3 +572,19 @@ async fn read_loop(
-     conns.remove(index);
-     Ok(())
- }
+     log::info!("dtls client disconnected {addr:?}");
+-    let mut conns = conns.lock().await;
+-    let index = conns
+-        .iter()
+-        .position(|(a, _)| *a == addr)
+-        .expect("connection not found");
+-    conns.remove(index);
+-    Ok(())
++    retire_connection(&conns, session, addr, &dtls_tx);
++    close_connection(&conn).await;
++    sessions.borrow_mut().remove(&session);
++}
 +
 +/// Classify a DTLS datagram by its first-byte event-type tag and
 +/// route through the variable-length clipboard codec or the fixed-
@@ -15893,6 +16894,300 @@ index e0a94751015e3380355be55299f95f8daa4bf339..6b35d202cdd8a07288ebfc0c1cccd2d7
 +    fixed[..copy_len].copy_from_slice(&bytes[..copy_len]);
 +    fixed.try_into().ok()
 +}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use async_trait::async_trait;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    use tokio::net::UdpSocket;
++
++    fn run_local(future: impl std::future::Future<Output = ()>) {
++        tokio::runtime::Builder::new_current_thread()
++            .enable_all()
++            .build()
++            .unwrap()
++            .block_on(tokio::task::LocalSet::new().run_until(future));
++    }
++
++    fn server_config() -> Config {
++        Config {
++            certificates: vec![Certificate::generate_self_signed(["test".to_owned()]).unwrap()],
++            extended_master_secret: ExtendedMasterSecretType::Require,
++            client_auth: RequireAnyClientCert,
++            ..Default::default()
++        }
++    }
++
++    async fn connect(addr: SocketAddr) -> ArcConn {
++        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        socket.connect(addr).await.unwrap();
++        let cfg = Config {
++            certificates: vec![Certificate::generate_self_signed(["test".to_owned()]).unwrap()],
++            extended_master_secret: ExtendedMasterSecretType::Require,
++            insecure_skip_verify: true,
++            ..Default::default()
++        };
++        Arc::new(
++            DTLSConn::new(Arc::new(socket), cfg, true, None)
++                .await
++                .unwrap(),
++        )
++    }
++
++    #[test]
++    fn active_dtls_shutdown_rebinds_and_accepts_repeatedly() {
++        run_local(async {
++            let cfg = server_config();
++            let conns: Connections = Default::default();
++            let attempts = Default::default();
++            let (tx, mut rx) = channel();
++            let listener = try_bind_listener("127.0.0.1".parse().unwrap(), 0, &cfg)
++                .await
++                .unwrap();
++            let addr = listener.addr().await.unwrap();
++            let mut slot = spawn_accept_task(listener, tx.clone(), conns.clone(), attempts);
++            for _ in 0..4 {
++                let client = tokio::time::timeout(Duration::from_secs(5), connect(addr))
++                    .await
++                    .unwrap();
++                let accepted = tokio::time::timeout(Duration::from_secs(5), rx.recv())
++                    .await
++                    .unwrap()
++                    .unwrap();
++                assert!(matches!(accepted, ListenEvent::Accept { .. }));
++                let (buf, len): ([u8; MAX_EVENT_SIZE], usize) = ProtoEvent::Ping.into();
++                client.send(&buf[..len]).await.unwrap();
++                let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())
++                    .await
++                    .unwrap()
++                    .unwrap();
++                assert!(matches!(
++                    event,
++                    ListenEvent::Msg {
++                        event: ProtoEvent::Ping,
++                        ..
++                    }
++                ));
++                slot.shutdown(&conns, &tx).await;
++                assert!(conns.borrow().is_empty());
++                assert!(matches!(
++                    rx.recv().await,
++                    Some(ListenEvent::Disconnected { .. })
++                ));
++                drop(client);
++                let listener = try_bind_listener(addr.ip(), addr.port(), &cfg)
++                    .await
++                    .unwrap();
++                slot = spawn_accept_task(listener, tx.clone(), conns.clone(), Default::default());
++            }
++            slot.shutdown(&conns, &tx).await;
++        });
++    }
++
++    struct TestConn {
++        socket: UdpSocket,
++        hang_close: bool,
++    }
++
++    #[async_trait]
++    impl Conn for TestConn {
++        async fn connect(&self, addr: SocketAddr) -> webrtc_util::Result<()> {
++            self.socket.connect(addr).await.map_err(Into::into)
++        }
++        async fn recv(&self, _: &mut [u8]) -> webrtc_util::Result<usize> {
++            std::future::pending().await
++        }
++        async fn recv_from(&self, _: &mut [u8]) -> webrtc_util::Result<(usize, SocketAddr)> {
++            std::future::pending().await
++        }
++        async fn send(&self, _: &[u8]) -> webrtc_util::Result<usize> {
++            Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe).into())
++        }
++        async fn send_to(&self, buf: &[u8], _: SocketAddr) -> webrtc_util::Result<usize> {
++            self.send(buf).await
++        }
++        fn local_addr(&self) -> webrtc_util::Result<SocketAddr> {
++            self.socket.local_addr().map_err(Into::into)
++        }
++        fn remote_addr(&self) -> Option<SocketAddr> {
++            None
++        }
++        async fn close(&self) -> webrtc_util::Result<()> {
++            if self.hang_close {
++                std::future::pending().await
++            } else {
++                Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe).into())
++            }
++        }
++        fn as_any(&self) -> &(dyn std::any::Any + Send + Sync) {
++            self
++        }
++    }
++
++    struct TestListener(Arc<AtomicBool>);
++    #[async_trait]
++    impl Listener for TestListener {
++        async fn accept(&self) -> webrtc_util::Result<(ArcConn, SocketAddr)> {
++            std::future::pending().await
++        }
++        async fn close(&self) -> webrtc_util::Result<()> {
++            self.0.store(true, Ordering::SeqCst);
++            Ok(())
++        }
++        async fn addr(&self) -> webrtc_util::Result<SocketAddr> {
++            Ok("127.0.0.1:1".parse().unwrap())
++        }
++    }
++
++    fn add_test_session(
++        slot: &ListenerSlot,
++        conns: &Connections,
++        addr: SocketAddr,
++        conn: ArcConn,
++    ) -> SessionId {
++        let session = SessionId::new();
++        conns.borrow_mut().push(RegisteredConnection {
++            addr,
++            session,
++            conn: conn.clone(),
++        });
++        let reader_conn = conn.clone();
++        let read_task = spawn_local(async move {
++            let mut buf = [0; 1];
++            let _ = reader_conn.recv(&mut buf).await;
++        });
++        slot.sessions.borrow_mut().insert(
++            session,
++            AcceptedConnection {
++                addr,
++                conn,
++                read_task: Some(read_task),
++            },
++        );
++        session
++    }
++
++    #[test]
++    fn supervisor_termination_drains_every_binding_with_one_close_budget() {
++        run_local(async {
++            let conns: Connections = Default::default();
++            let (tx, mut rx) = channel();
++            let (request_tx, request_rx) = channel();
++            let (port_tx, _) = channel();
++            let mut listeners = HashMap::new();
++            let mut retired = Vec::new();
++            let mut closed = Vec::new();
++            for ip in ["127.0.0.1", "127.0.0.2"] {
++                let flag = Arc::new(AtomicBool::new(false));
++                let slot = spawn_accept_task(
++                    Arc::new(TestListener(flag.clone())),
++                    tx.clone(),
++                    conns.clone(),
++                    Default::default(),
++                );
++                let conn: ArcConn = Arc::new(TestConn {
++                    socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
++                    hang_close: true,
++                });
++                retired.push(Arc::downgrade(&conn));
++                add_test_session(&slot, &conns, "127.0.0.1:5555".parse().unwrap(), conn);
++                listeners.insert(ip.parse().unwrap(), slot);
++                closed.push(flag);
++            }
++            let task = spawn_supervisor_task(
++                0,
++                server_config(),
++                listeners,
++                tx,
++                conns.clone(),
++                Default::default(),
++                request_rx,
++                port_tx,
++            );
++            request_tx.send(ListenerRequest::Terminate).unwrap();
++            tokio::time::timeout(Duration::from_millis(1800), task)
++                .await
++                .unwrap()
++                .unwrap();
++            assert!(conns.borrow().is_empty());
++            assert!(retired.into_iter().all(|weak| weak.upgrade().is_none()));
++            assert!(closed.into_iter().all(|flag| flag.load(Ordering::SeqCst)));
++            for _ in 0..2 {
++                assert!(matches!(
++                    rx.recv().await,
++                    Some(ListenEvent::Disconnected { .. })
++                ));
++            }
++        });
++    }
++
++    #[test]
++    fn failed_and_hung_close_retire_only_the_owned_binding() {
++        run_local(async {
++            let conns: Connections = Default::default();
++            let (tx, mut rx) = channel();
++            let closed = Arc::new(AtomicBool::new(false));
++            let slot = spawn_accept_task(
++                Arc::new(TestListener(closed.clone())),
++                tx.clone(),
++                conns.clone(),
++                Default::default(),
++            );
++            let sibling_closed = Arc::new(AtomicBool::new(false));
++            let sibling = spawn_accept_task(
++                Arc::new(TestListener(sibling_closed.clone())),
++                tx.clone(),
++                conns.clone(),
++                Default::default(),
++            );
++            let peer = "127.0.0.1:5555".parse().unwrap();
++            let mut retired = Vec::new();
++            let mut old_ids = Vec::new();
++            for hang_close in [false, true] {
++                let conn: ArcConn = Arc::new(TestConn {
++                    socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
++                    hang_close,
++                });
++                retired.push((conn.local_addr().unwrap(), Arc::downgrade(&conn)));
++                old_ids.push(add_test_session(&slot, &conns, peer, conn));
++            }
++            let survivor: ArcConn = Arc::new(TestConn {
++                socket: UdpSocket::bind("127.0.0.1:0").await.unwrap(),
++                hang_close: false,
++            });
++            let survivor_addr = survivor.local_addr().unwrap();
++            let survivor_id = add_test_session(&sibling, &conns, peer, survivor);
++            tokio::task::yield_now().await;
++            tokio::time::timeout(Duration::from_secs(2), slot.shutdown(&conns, &tx))
++                .await
++                .unwrap();
++            assert!(closed.load(Ordering::SeqCst));
++            assert!(!sibling_closed.load(Ordering::SeqCst));
++            assert_eq!(conns.borrow().len(), 1);
++            assert_eq!(conns.borrow()[0].session, survivor_id);
++            for (addr, weak) in retired {
++                assert!(weak.upgrade().is_none());
++                assert!(UdpSocket::bind(addr).await.is_ok());
++            }
++            assert!(UdpSocket::bind(survivor_addr).await.is_err());
++            // A stale reader's cleanup neither panics nor removes its sibling.
++            retire_connection(&conns, old_ids[0], peer, &tx);
++            assert_eq!(conns.borrow()[0].session, survivor_id);
++            let mut disconnected = HashSet::new();
++            for _ in 0..old_ids.len() {
++                if let Some(ListenEvent::Disconnected { session, .. }) = rx.recv().await {
++                    disconnected.insert(session);
++                } else {
++                    panic!("expected disconnect");
++                }
++            }
++            assert_eq!(disconnected, old_ids.into_iter().collect());
++            sibling.shutdown(&conns, &tx).await;
++            assert!(conns.borrow().is_empty());
++        });
++    }
+ }
 diff --git a/src/macos_tcc_probe.rs b/src/macos_tcc_probe.rs
 new file mode 100644
 index 0000000000000000000000000000000000000000..744f8ab8412295989eba209c05b2a2c4c085c6cd
